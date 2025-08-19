@@ -1,42 +1,34 @@
 // components/blog/BlogCard.tsx
-import Link from "next/link";
-import Image from "next/image";
-import { motion } from "framer-motion";
-import { BlogPostLite } from "../../lib/blogData"
-import { cardClass, coverClass, metaRowClass, titleClass, excerptClass } from "../../styles/blogLite.css"
-import { formatDateISOtoRo } from "../../lib/dates"
+import Card from "../Card";
+import { Post } from "../../types/blog";
+import { formatDateRo } from "../../lib/dates"; // asigură un helper ro-RO
+import Img from "../ui/Img";
 
-export default function BlogCard({ post }: { post: BlogPostLite }) {
+type Props = {
+  post: Post;
+  basePath?: string;     // default: /blog
+};
+
+export default function BlogCard({ post, basePath = "/blog" }: Props) {
+  const href = `${basePath}/${post.slug}`;
+  const meta = (
+    <>
+      <time dateTime={post.date}>{formatDateRo(post.date)}</time>
+      {post.tags?.length ? <span>• {post.tags[0]}</span> : null}
+    </>
+  );
+
   return (
-    <motion.article
-      className={cardClass}
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.3 }}
-      transition={{ duration: 0.35 }}
-    >
-      <Link href={`/blog/${post.slug}`} aria-label={post.title}>
-        <div className={coverClass}>
-          <Image
-            src={post.coverImage || "/images/blog/placeholder.jpg"}
-            alt={post.title}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            priority={false}
-          />
-        </div>
-        <div className={metaRowClass}>
-          <span>{formatDateISOtoRo(post.date)}</span>
-          {post.readingTime && (
-            <>
-              <span>&middot;</span>
-              <span>{post.readingTime}</span>
-            </>
-          )}
-        </div>
-        <h3 className={titleClass}>{post.title}</h3>
-        <p className={excerptClass}>{post.excerpt}</p>
-      </Link>
-    </motion.article>
+    <Card
+      title={post.title}
+      href={href}
+      meta={meta}
+      excerpt={post.excerpt}
+      image={
+        post.cover
+          ? { src: post.cover, alt: post.title }
+          : undefined
+      }
+    />
   );
 }

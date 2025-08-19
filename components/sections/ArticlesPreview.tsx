@@ -1,24 +1,22 @@
 // components/sections/ArticlesPreview.tsx
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
-import { BlogPostLite } from "../../lib/blogData"
-import { formatDateISOtoRo } from "../../lib/dates"
+
+import Grid from "../Grid";
+import BlogCard from "../blog/BlogCard";
+import type { Post } from "../../types/blog";
+import type { BlogPostLite } from "../../lib/blogData";
+
 import {
   sectionClass,
   headerClass,
   titleClass,
   subtitleClass,
   gridClass,
-  cardClass,
-  coverClass,
-  metaRowClass,
-  cardTitleClass,
-  excerptClass,
   ctaRowClass,
   emptyClass,
-} from "../../styles/articlesPreview.css"
-import Button from "../../components/Button"
+} from "../../styles/articlesPreview.css";
+import Button from "../../components/Button";
 
 type Props = {
   posts: BlogPostLite[];
@@ -27,57 +25,52 @@ type Props = {
   showCta?: boolean;
 };
 
+const adaptToPost = (p: BlogPostLite): Post => ({
+  slug: p.slug,
+  title: p.title,
+  excerpt: p.excerpt,
+  cover: p.coverImage ?? undefined,
+  date: p.date,
+  tags: p.tags,
+});
+
 export default function ArticlesPreview({
   posts,
   title = "Articole recente",
   subtitle = "Noutăți și ghiduri scurte.",
   showCta = true,
 }: Props) {
+  const hasPosts = Array.isArray(posts) && posts.length > 0;
+
   return (
     <section className={sectionClass} aria-labelledby="articles-preview-title">
       <div className={headerClass}>
-        <h2 id="articles-preview-title" className={titleClass}>{title}</h2>
+        <h2 id="articles-preview-title" className={titleClass}>
+          {title}
+        </h2>
         <p className={subtitleClass}>{subtitle}</p>
       </div>
 
-      {(!posts || posts.length === 0) ? (
+      {!hasPosts ? (
         <div className={emptyClass}>Nu avem încă articole publice. Revino curând.</div>
       ) : (
         <>
-          <div className={gridClass}>
-            {posts.map((post) => (
-              <motion.article
-                key={post.slug}
-                className={cardClass}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Link href={`/blog/${post.slug}`} aria-label={post.title}>
-                  <div className={coverClass}>
-                    <Image
-                      src={post.coverImage || "/images/blog/placeholder.jpg"}
-                      alt={post.title}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                  </div>
-                  <div className={metaRowClass}>
-                    <span>{formatDateISOtoRo(post.date)}</span>
-                    {post.readingTime && (
-                      <>
-                        <span>&middot;</span>
-                        <span>{post.readingTime}</span>
-                      </>
-                    )}
-                  </div>
-                  <h3 className={cardTitleClass}>{post.title}</h3>
-                  <p className={excerptClass}>{post.excerpt}</p>
-                </Link>
-              </motion.article>
-            ))}
-          </div>
+          <Grid cols={{ base: 1, sm: 2, lg: 3 }} gap="20px" className={gridClass}>
+            {posts.map((p) => {
+              const post = adaptToPost(p);
+              return (
+                <motion.div
+                  key={post.slug}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <BlogCard post={post} />
+                </motion.div>
+              );
+            })}
+          </Grid>
 
           {showCta && (
             <div className={ctaRowClass}>

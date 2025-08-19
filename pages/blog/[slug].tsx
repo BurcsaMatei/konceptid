@@ -1,16 +1,16 @@
 // pages/blog/[slug].tsx
-import { GetStaticPaths, GetStaticProps, NextPage } from "next";
+import type { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import Head from "next/head";
-import Image from "next/image";
 
 import Seo from "../../components/Seo";
 import JsonLd from "../../components/JsonLd";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import RelatedPosts from "../../components/blog/RelatedPosts";
+import Img from "../../components/ui/Img";
 
 import { getAllPosts, getPostBySlug, SITE_URL } from "../../lib/blogData";
-import type { BlogPostLite } from "../../lib/blogData";
-import { formatDateISOtoRo } from "../../lib/dates";
+import { formatDateRo } from "../../lib/dates";
+
 import {
   articleClass,
   containerClass,
@@ -28,7 +28,7 @@ const BlogPostPage: NextPage<Props> = ({ post, related }) => {
   const canonical = `${SITE_URL}/blog/${post.slug}`;
 
   // JSON-LD BlogPosting
-  const jsonLd = {
+  const blogPosting = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: post.title,
@@ -69,38 +69,42 @@ const BlogPostPage: NextPage<Props> = ({ post, related }) => {
 
   return (
     <>
-      {/* 🔹 OG & Twitter vor folosi url + image din articol via Seo */}
+      {/* OG & Twitter via <Seo> */}
       <Seo
         title={post.title}
         description={post.excerpt}
         url={`/blog/${post.slug}`}
         image={post.coverImage || "/images/blog/placeholder.jpg"}
       />
+
       <Head>
         <link rel="canonical" href={canonical} />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbList) }}
-        />
       </Head>
-      <JsonLd schema={jsonLd} />
+
+      {/* JSON-LD */}
+      <JsonLd schema={breadcrumbList} />
+      <JsonLd schema={blogPosting} />
 
       <main className={containerClass}>
         <Breadcrumbs items={crumbs} />
 
-        <header className={pageHeaderClass}>
-          <h1 style={{ fontSize: 36, margin: 0 }}>{post.title}</h1>
+        <header className={pageHeaderClass} aria-labelledby="post-title">
+          <h1 id="post-title" style={{ fontSize: 36, margin: 0 }}>
+            {post.title}
+          </h1>
           <p style={{ color: "#6b7280", marginTop: 12 }}>
-            {formatDateISOtoRo(post.date)} {post.readingTime ? `· ${post.readingTime}` : ""}
+            {formatDateRo(post.date)} {post.readingTime ? `· ${post.readingTime}` : ""}
           </p>
         </header>
 
         {post.coverImage && (
           <div className={coverPageClass} aria-label="Imagine reprezentativă articol">
-            <Image
+            {/* wrapper-ul are position:relative/aspectRatio în CSS; Img folosește fill */}
+            <Img
               src={post.coverImage}
               alt={post.title}
-              fill
+              variant="card"
+              cover
               priority={false}
               sizes="(max-width: 820px) 100vw, 820px"
             />
@@ -112,7 +116,6 @@ const BlogPostPage: NextPage<Props> = ({ post, related }) => {
           <div dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
         </article>
 
-        {/* Poate te mai interesează și… */}
         <RelatedPosts items={related} />
       </main>
     </>
