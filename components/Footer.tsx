@@ -10,7 +10,7 @@ import {
 import { useCookieConsent } from "../components/cookies/CookieProvider";
 
 // ✅ logo din src/assets (SVGR)
-import LogoMark from "../src/assets/logo.svg";
+import LogoMark from "../public/logo.svg"
 
 // ✅ import nou pentru linkuri externe
 import ExternalLink from "./ExternalLink";

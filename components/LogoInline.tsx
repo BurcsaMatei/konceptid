@@ -1,42 +1,16 @@
-// components/LogoInline.tsx
-'use client';
-
 import Link from "next/link";
-// indiferent dacă folosești aliasul sau calea relativă — important e să fie în src/assets
-import RawLogo from "@assets/logo.svg"; // mutat în src/assets/logo.svg
 
-type Props = {
-  href?: string;
-  ariaLabel?: string;
-  className?: string;
-};
+type Props = { href?: string };
 
-export default function LogoInline({
-  href = "/",
-  ariaLabel = "KonceptID — Acasă",
-  className,
-}: Props) {
-  // Dacă @svgr/webpack e activ: RawLogo este un React component
-  // Dacă NU e activ: RawLogo este un string (URL către asset)
-  const isUrlString = typeof RawLogo === "string";
-
+export default function LogoInline({ href = "/" }: Props) {
   return (
     <Link
       href={href}
-      aria-label={ariaLabel}
-      className={className}
-      style={{ lineHeight: 0, display: "inline-flex", alignItems: "center" }}
+      aria-label="KonceptID — Acasă"
+      style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", color: "inherit" }}
     >
-      {isUrlString ? (
-        <img
-          src={RawLogo as unknown as string}
-          alt="KonceptID — logo"
-          style={{ display: "block", height: "100%", width: "auto" }}
-        />
-      ) : (
-       
-        <RawLogo style={{ display: "block", height: "100%", width: "auto" }} />
-      )}
+      <img src="/logo.svg" alt="KonceptID" width={28} height={28} />
+      <strong>KonceptID</strong>
     </Link>
   );
 }

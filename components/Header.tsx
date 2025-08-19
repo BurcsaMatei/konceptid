@@ -1,81 +1,133 @@
-// components/Header.tsx
-'use client';
-
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  headerClass,
-  headerInnerClass,
-  logoBoxClass,
-  desktopNavClass,
-  desktopNavLinkClass,
-  burgerButtonClass,
-  mobileNavClass,
-  mobileListClass,
-  mobileListItemClass,
-  mobileNavLinkClass,
+  headerRoot, headerInner, navDesktop, navLink,
+  mobileBtn, overlay, overlayOpen, panel, panelOpen, panelNav, panelLink,
 } from "../styles/header.css";
+import LogoInline from "./LogoInline"; // dacă nu ai, înlocuiește cu <span>KonceptID</span>
 
-// import relativ, conform structurii tale
-import LogoMark from "../src/assets/logo.svg";
+const NAV = [
+  { href: "/", label: "Acasă" },
+  { href: "/galerie", label: "Galerie" },
+  { href: "/services", label: "Servicii" },
+  { href: "/blog", label: "Blog" },
+  { href: "/contact", label: "Contact" },
+];
 
 export default function Header() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const firstLinkRef = useRef<HTMLAnchorElement | null>(null);
+
+  // blochează scroll-ul paginii când meniul e deschis
+  useEffect(() => {
+    const root = document.documentElement;
+    if (open) root.style.overflow = "hidden";
+    else root.style.overflow = "";
+    return () => { root.style.overflow = ""; };
+  }, [open]);
+
+  // focus trap + Esc
+  useEffect(() => {
+    if (!open || !panelRef.current) return;
+
+    // mută focusul pe primul link
+    firstLinkRef.current?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      // trap în interiorul panoului
+      const focusables = panelRef.current!.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusables.length) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (e.shiftKey) {
+        if (active === first || !active) {
+          (last as HTMLElement).focus();
+          e.preventDefault();
+        }
+      } else {
+        if (active === last) {
+          (first as HTMLElement).focus();
+          e.preventDefault();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
 
   return (
-    <header className={headerClass} role="banner">
-      <div className={headerInnerClass}>
+    <header className={headerRoot}>
+      <div className={headerInner}>
         {/* Logo */}
-        <div className={logoBoxClass}>
-          <Link
-            href="/"
-            aria-label="KonceptID — Acasă"
-            style={{ lineHeight: 0, display: "inline-flex", height: "100%", alignItems: "center" }}
-          >
-            <LogoMark style={{ display: "block", height: "100%", width: "auto" }} />
-          </Link>
-        </div>
+        <Link href="/" aria-label="Mergi la Acasă" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          {/* Dacă nu ai componentă LogoInline, înlocuiește cu <strong>KonceptID</strong> */}
+          <LogoInline />
+        </Link>
 
-        {/* Desktop nav */}
-        <nav className={desktopNavClass} aria-label="Navigație principală">
-          <Link href="/" className={desktopNavLinkClass}>Home</Link>
-          <Link href="/services" className={desktopNavLinkClass}>Servicii</Link>
-          <Link href="/galerie" className={desktopNavLinkClass}>Galerie</Link>
-          <Link href="/contact" className={desktopNavLinkClass}>Contact</Link>
+        {/* Nav desktop */}
+        <nav className={navDesktop} aria-label="Meniu principal">
+          {NAV.map((item) => (
+            <Link key={item.href} className={navLink} href={item.href}>
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
-        {/* Burger (doar pe mobil) */}
+        {/* Buton mobil */}
         <button
           type="button"
-          className={burgerButtonClass}
-          aria-label={isOpen ? "Închide meniul" : "Deschide meniul"}
-          aria-expanded={isOpen}
-          aria-controls="site-mobile-nav"
-          onClick={() => setIsOpen(v => !v)}
+          className={mobileBtn}
+          aria-label={open ? "Închide meniul" : "Deschide meniul"}
+          aria-expanded={open}
+          aria-controls="mobile-menu"
+          onClick={() => setOpen((v) => !v)}
         >
-          {isOpen ? "✕" : "☰"}
+          {/* simplu: „≡” / „×” */}
+          <span aria-hidden>{open ? "×" : "≡"}</span>
         </button>
       </div>
 
-      {/* Mobile nav — listă verticală simplă, fără overlay */}
-      {isOpen && (
-        <nav id="site-mobile-nav" className={mobileNavClass} aria-label="Navigație mobil">
-          <ul className={mobileListClass}>
-            <li className={mobileListItemClass}>
-              <Link href="/" className={mobileNavLinkClass} onClick={() => setIsOpen(false)}>Home</Link>
-            </li>
-            <li className={mobileListItemClass}>
-              <Link href="/services" className={mobileNavLinkClass} onClick={() => setIsOpen(false)}>Servicii</Link>
-            </li>
-            <li className={mobileListItemClass}>
-              <Link href="/galerie" className={mobileNavLinkClass} onClick={() => setIsOpen(false)}>Galerie</Link>
-            </li>
-            <li className={mobileListItemClass}>
-              <Link href="/contact" className={mobileNavLinkClass} onClick={() => setIsOpen(false)}>Contact</Link>
-            </li>
-          </ul>
+      {/* Overlay + panou */}
+      <div
+        className={`${overlay} ${open ? overlayOpen : ""}`}
+        onClick={() => setOpen(false)}
+        aria-hidden={!open}
+      />
+      <div
+        id="mobile-menu"
+        ref={panelRef}
+        className={`${panel} ${open ? panelOpen : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Meniu"
+      >
+        <nav className={panelNav} aria-label="Meniu mobil">
+          {NAV.map((item, i) => (
+            <Link
+              key={item.href}
+              ref={i === 0 ? firstLinkRef : null}
+              className={panelLink}
+              href={item.href}
+              onClick={() => setOpen(false)}
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
-      )}
+      </div>
     </header>
   );
 }
