@@ -1,5 +1,13 @@
+// styles/sectionBase.css.ts
+
+// ==============================
+// Imports
+// ==============================
 import { style } from "@vanilla-extract/css";
 
+// ==============================
+// Classes
+// ==============================
 export const section = style({
   width: "100%",
   paddingInline: "clamp(16px, 4vw, 32px)",

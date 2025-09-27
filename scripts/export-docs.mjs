@@ -54,17 +54,25 @@ function inferDescription(relPath, jsdoc) {
 
   const lower = relPath.toLowerCase();
 
-  if (lower.includes("styles/header.css.ts")) return "Stilurile pentru header (desktop + mobil) în Vanilla Extract.";
+  if (lower.includes("styles/header.css.ts"))
+    return "Stilurile pentru header (desktop + mobil) în Vanilla Extract.";
   if (lower.includes("styles/footer.css.ts")) return "Stilurile pentru footer.";
-  if (lower.includes("styles/globals.css")) return "Reset global + reguli de accesibilitate și font.";
-  if (lower.includes("styles/tokens")) return "Design tokens (culori, spacing, font sizes) pentru întreg proiectul.";
-  if (lower.includes("components/header.tsx")) return "Header global + navigație (desktop + mobil).";
+  if (lower.includes("styles/globals.css"))
+    return "Reset global + reguli de accesibilitate și font.";
+  if (lower.includes("styles/tokens"))
+    return "Design tokens (culori, spacing, font sizes) pentru întreg proiectul.";
+  if (lower.includes("components/header.tsx"))
+    return "Header global + navigație (desktop + mobil).";
   if (lower.includes("components/footer.tsx")) return "Footer global.";
-  if (lower.includes("components/cookies/cookieprovider.tsx")) return "Provider pentru consimțământ cookie-uri (stare + context).";
-  if (lower.includes("components/cookieconsent.tsx")) return "UI pentru banner de consimțământ cookie-uri.";
-  if (lower.includes("components/seo.tsx")) return "Setare meta SEO (title, description, OG, Twitter).";
+  if (lower.includes("components/cookies/cookieprovider.tsx"))
+    return "Provider pentru consimțământ cookie-uri (stare + context).";
+  if (lower.includes("components/cookieconsent.tsx"))
+    return "UI pentru banner de consimțământ cookie-uri.";
+  if (lower.includes("components/seo.tsx"))
+    return "Setare meta SEO (title, description, OG, Twitter).";
   if (lower.includes("components/skiplink.tsx")) return "Link accesibilitate: „sari la conținut”.";
-  if (lower.includes("/pages/_app.tsx")) return "Punct de intrare Next.js: providers + layout global.";
+  if (lower.includes("/pages/_app.tsx"))
+    return "Punct de intrare Next.js: providers + layout global.";
   if (lower.includes("/pages/_document.tsx")) return "Document HTML personalizat (Html/Head/Body).";
   if (lower.includes("/pages/index.tsx")) return "Homepage.";
   if (lower.includes("/pages/services.tsx")) return "Pagina Servicii.";
@@ -77,9 +85,11 @@ function inferDescription(relPath, jsdoc) {
   if (lower.includes("/lib/images.ts")) return "Centralizare resurse imagine (hero/OG/favicons).";
   if (lower.includes("/data/gallerycaptions.json")) return "Captions pentru imaginile din galerie.";
   if (lower.includes("/interfaces/")) return "Interfețe/Tipuri TypeScript utilizate în proiect.";
-  if (lower.includes("/types/svg.d.ts")) return "Declarație TypeScript pentru importul fișierelor SVG ca module.";
+  if (lower.includes("/types/svg.d.ts"))
+    return "Declarație TypeScript pentru importul fișierelor SVG ca module.";
   if (lower.includes("/utils/sample-data.ts")) return "Date demo (mock) pentru test.";
-  if (lower.includes("/scripts/gengalleryjson.js")) return "Script Node: generează JSON-ul galeriei pe baza imaginilor.";
+  if (lower.includes("/scripts/gengalleryjson.js"))
+    return "Script Node: generează JSON-ul galeriei pe baza imaginilor.";
 
   return "Fișier de cod parte din aplicație.";
 }

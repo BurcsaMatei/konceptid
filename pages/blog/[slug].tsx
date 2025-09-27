@@ -1,139 +1,181 @@
 // pages/blog/[slug].tsx
+
+// ==============================
+// Imports
+// ==============================
 import type { GetStaticPaths, GetStaticProps, NextPage } from "next";
-import Head from "next/head";
 
-import Seo from "../../components/Seo";
-import JsonLd from "../../components/JsonLd";
-import Breadcrumbs from "../../components/Breadcrumbs";
+import Appear from "../../components/animations/Appear";
 import RelatedPosts from "../../components/blog/RelatedPosts";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import IntroSection from "../../components/sections/IntroSection";
+import Seo from "../../components/Seo";
 import Img from "../../components/ui/Img";
-
-import { getAllPosts, getPostBySlug, SITE_URL } from "../../lib/blogData";
-import { formatDateRo } from "../../lib/dates";
-
-import {
-  articleClass,
-  containerClass,
-  coverPageClass,
-  pageHeaderClass,
-} from "../../styles/blogLite.css";
+import { getAllPosts, getPostBySlug } from "../../lib/blogData";
+import { absoluteOgImage, absoluteUrl, SEO_DEFAULTS } from "../../lib/config";
+import { formatDateISOtoRo } from "../../lib/dates";
+import { coverCaption, coverFigure } from "../../styles/blogPost.css";
 import { proseClass } from "../../styles/prose.css";
 
+// ==============================
+// Types
+// ==============================
+type BasePost = NonNullable<ReturnType<typeof getPostBySlug>>;
 type Props = {
-  post: NonNullable<ReturnType<typeof getPostBySlug>>;
+  post: BasePost;
   related: { slug: string; title: string }[];
 };
 
-const BlogPostPage: NextPage<Props> = ({ post, related }) => {
-  const canonical = `${SITE_URL}/blog/${post.slug}`;
+// ==============================
+// Type guards / helpers pure
+// ==============================
+function hasCoverCaption(p: BasePost | unknown): p is BasePost & { coverCaption: string } {
+  const v = (p as { coverCaption?: unknown })?.coverCaption;
+  return typeof v === "string" && v.trim().length > 0;
+}
 
-  // JSON-LD BlogPosting
-  const blogPosting = {
+function buildBreadcrumbList(canonical: string, postTitle: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Acasă", item: absoluteUrl("/") },
+      { "@type": "ListItem", position: 2, name: "Blog", item: absoluteUrl("/blog") },
+      { "@type": "ListItem", position: 3, name: postTitle, item: canonical },
+    ],
+  } as const;
+}
+
+function buildBlogPosting(post: BasePost, canonical: string) {
+  return {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: post.title,
     datePublished: post.date,
     dateModified: post.date,
     description: post.excerpt,
-    image: post.coverImage
-      ? post.coverImage.startsWith("http")
-        ? post.coverImage
-        : `${SITE_URL}${post.coverImage}`
-      : undefined,
     url: canonical,
     mainEntityOfPage: canonical,
-    author: post.author ? { "@type": "Person", name: post.author } : undefined,
     publisher: {
       "@type": "Organization",
-      name: "KonceptID",
-      logo: { "@type": "ImageObject", url: `${SITE_URL}/images/og-image.png` },
+      name: SEO_DEFAULTS.siteName,
+      logo: { "@type": "ImageObject", url: absoluteOgImage(SEO_DEFAULTS.ogImage) },
     },
-  };
+    ...(post.coverImage ? { image: absoluteUrl(post.coverImage) } : {}),
+    ...(post.author ? { author: { "@type": "Person", name: post.author } } : {}),
+  } as const;
+}
 
-  // Breadcrumbs (vizual + JSON-LD)
-  const crumbs = [
-    { name: "Acasă", href: "/" },
-    { name: "Blog", href: "/blog" },
-    { name: post.title, current: true },
-  ];
-  const breadcrumbList = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: crumbs.map((c, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      name: c.name,
-      item: c.href ? `${SITE_URL}${c.href}` : canonical,
-    })),
-  };
+function formatReadingTime(rt?: string | number): string {
+  if (rt == null) return "";
+  if (typeof rt === "number" && Number.isFinite(rt) && rt > 0) return `${rt} min`;
+  if (typeof rt === "string") {
+    const m = rt.match(/\d+/);
+    if (m?.[0]) return `${Number(m[0])} min`;
+    const trimmed = rt.trim();
+    return trimmed ? trimmed : "";
+  }
+  return "";
+}
+
+// ==============================
+// Page
+// ==============================
+const BlogPostPage: NextPage<Props> = ({ post, related }) => {
+  const canonical = absoluteUrl(`/blog/${post.slug}`);
+  const breadcrumbList = buildBreadcrumbList(canonical, post.title);
+  const blogPosting = buildBlogPosting(post, canonical);
+
+  const reading = formatReadingTime(post.readingTime as unknown as string | number | undefined);
+  const lede = `${formatDateISOtoRo(post.date)}${reading ? ` · ${reading}` : ""}`;
+
+  const coverSrc = post.coverImage ?? "/images/blog/placeholder.jpg";
+  const coverAlt: string = post.title;
 
   return (
     <>
-      {/* OG & Twitter via <Seo> */}
       <Seo
+        type="article"
         title={post.title}
         description={post.excerpt}
-        url={`/blog/${post.slug}`}
-        image={post.coverImage || "/images/blog/placeholder.jpg"}
+        url={canonical}
+        image={absoluteOgImage(coverSrc)}
+        structuredData={[breadcrumbList, blogPosting]}
       />
 
-      <Head>
-        <link rel="canonical" href={canonical} />
-      </Head>
+      <Breadcrumbs
+        items={[
+          { name: "Acasă", href: "/" },
+          { name: "Blog", href: "/blog" },
+          { name: post.title, current: true },
+        ]}
+      />
 
-      {/* JSON-LD */}
-      <JsonLd schema={breadcrumbList} />
-      <JsonLd schema={blogPosting} />
+      {/* Intro aliniat și animat */}
+      <section className="section">
+        <div className="container">
+          <Appear>
+            <IntroSection eyebrow="Articol" title={post.title} lede={lede} />
+          </Appear>
+        </div>
+      </section>
 
-      <main className={containerClass}>
-        <Breadcrumbs items={crumbs} />
+      {/* Conținut principal – aliniat la containerul global */}
+      <section className="section">
+        <div className="container">
+          {post.coverImage && (
+            <Appear as="figure" aria-label="Imagine reprezentativă articol" className={coverFigure}>
+              <Img
+                src={coverSrc}
+                alt={coverAlt}
+                fill
+                fit="cover"
+                sizes="(max-width: 1024px) 100vw, 1024px"
+                priority={false}
+              />
+            </Appear>
+          )}
 
-        <header className={pageHeaderClass} aria-labelledby="post-title">
-          <h1 id="post-title" style={{ fontSize: 36, margin: 0 }}>
-            {post.title}
-          </h1>
-          <p style={{ color: "#6b7280", marginTop: 12 }}>
-            {formatDateRo(post.date)} {post.readingTime ? `· ${post.readingTime}` : ""}
-          </p>
-        </header>
+          {hasCoverCaption(post) && (
+            <Appear as="figcaption" className={coverCaption} delay={0.06}>
+              {post.coverCaption}
+            </Appear>
+          )}
 
-        {post.coverImage && (
-          <div className={coverPageClass} aria-label="Imagine reprezentativă articol">
-            {/* wrapper-ul are position:relative/aspectRatio în CSS; Img folosește fill */}
-            <Img
-              src={post.coverImage}
-              alt={post.title}
-              variant="card"
-              cover
-              priority={false}
-              sizes="(max-width: 820px) 100vw, 820px"
-            />
-          </div>
-        )}
+          {post.contentHtml && (
+            <Appear as="article" className={proseClass} delay={0.12}>
+              {/* eslint-disable-next-line react/no-danger */}
+              <div dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
+            </Appear>
+          )}
+        </div>
+      </section>
 
-        <article className={`${articleClass} ${proseClass}`}>
-          {/* eslint-disable-next-line react/no-danger */}
-          <div dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
-        </article>
-
-        <RelatedPosts items={related} />
-      </main>
+      {/* Related Posts – aliniat + animat */}
+      <section className="section">
+        <div className="container">
+          <Appear>
+            <RelatedPosts items={related} />
+          </Appear>
+        </div>
+      </section>
     </>
   );
 };
 
+// ==============================
+// SSG
+// ==============================
 export const getStaticPaths: GetStaticPaths = async () => {
   const posts = getAllPosts();
-  const paths = posts.map((p) => ({ params: { slug: p.slug } }));
-  return { paths, fallback: false };
+  return { paths: posts.map((p) => ({ params: { slug: p.slug } })), fallback: false };
 };
 
-export const getStaticProps: GetStaticProps = async ({ params }) => {
+export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   const slug = String(params?.slug);
   const post = getPostBySlug(slug);
   if (!post) return { notFound: true };
 
-  // restul articolelor (max 6), exclude curentul
   const related = getAllPosts()
     .filter((p) => p.slug !== slug)
     .slice(0, 6)

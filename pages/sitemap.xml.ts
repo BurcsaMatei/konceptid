@@ -1,73 +1,78 @@
 // pages/sitemap.xml.ts
+
+// ==============================
+// Imports
+// ==============================
 import type { GetServerSideProps } from "next";
-import { getAllPosts } from "../lib/blogData"
 
-// Rute statice. Am eliminat complet "about".
-const STATIC_ROUTES = ["/", "/services", "/galerie", "/contact", "/blog"] as const;
+import { getAllPosts } from "../lib/blogData";
+import { SITEMAPS } from "../lib/config";
+import { getRequestBaseUrl, joinHostPath } from "../lib/url";
 
-function escapeXml(s: string) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+// ==============================
+// Utils
+// ==============================
+function iso(d: Date | string): string {
+  return (d instanceof Date ? d : new Date(d)).toISOString();
 }
 
-function urlEntry(loc: string, lastmod: string, changefreq: "daily" | "weekly" | "monthly", priority: string) {
-  return `
-  <url>
-    <loc>${escapeXml(loc)}</loc>
-    <lastmod>${lastmod}</lastmod>
-    <changefreq>${changefreq}</changefreq>
-    <priority>${priority}</priority>
-  </url>`;
-}
+function generateIndex(baseUrl: string): string {
+  const nowIso = new Date().toISOString();
 
-function generateSiteMap(host: string) {
-  // 1) Rute statice
-  const staticUrls = STATIC_ROUTES.map((path) => {
-    const priority = path === "/" ? "1.0" : path === "/blog" ? "0.8" : "0.7";
-    return urlEntry(`${host}${path}`, new Date().toISOString(), "weekly", priority);
-  }).join("");
+  // Derivăm celelalte sitemap-uri din config (excludem indexul însuși)
+  const children = (SITEMAPS as readonly string[]).filter((p) => p !== "/sitemap.xml");
 
-  // 2) Articole din varianta "lite"
-  const posts = getAllPosts(); // deja exclude draft-urile și sortează
-  const postUrls = posts
-    .map((p) => {
-      const loc = `${host}/blog/${p.slug}`;
-      // dacă 'p.date' e valid, îl folosim ca lastmod; altfel, azi
-      const lastmod = new Date(p.date).toString() !== "Invalid Date" ? new Date(p.date).toISOString() : new Date().toISOString();
-      return urlEntry(loc, lastmod, "monthly", "0.8");
+  // Heuristic: folosim lastmod specific pentru posts; restul = now
+  let postsLastmod = nowIso;
+  try {
+    const posts = getAllPosts();
+    const latest = posts
+      .map((p) => +new Date(p.date))
+      .filter((n) => !Number.isNaN(n))
+      .sort((a, b) => b - a)[0];
+    if (latest) postsLastmod = iso(new Date(latest));
+  } catch {
+    /* no-op */
+  }
+
+  const lastmodFor = (path: string): string => {
+    if (path.includes("posts")) return postsLastmod;
+    return nowIso;
+  };
+
+  const entries = children
+    .map((path) => {
+      const loc = joinHostPath(baseUrl, path);
+      const lastmod = lastmodFor(path);
+      return `  <sitemap>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>`;
     })
-    .join("");
+    .join("\n");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${staticUrls}
-${postUrls}
-</urlset>`;
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries}
+</sitemapindex>`;
 }
 
+// ==============================
+// Component
+// ==============================
+// Acest fișier generează un sitemap index care listează alte sitemap-uri.
+export default function SiteMapIndex() {
+  return null;
+}
+
+// ==============================
+// Exporturi
+// ==============================
 export const getServerSideProps: GetServerSideProps = async ({ res, req }) => {
-  const forwardedProto = (req.headers["x-forwarded-proto"] as string) || "http";
-  const forwardedHost = (req.headers["x-forwarded-host"] as string) || req.headers.host || "localhost:3000";
+  const SITE_URL = getRequestBaseUrl(req);
+  const xml = generateIndex(SITE_URL);
 
-  // preferă .env.local dacă e setat
-  const rawBase = process.env.NEXT_PUBLIC_SITE_URL || `${forwardedProto}://${forwardedHost}`;
-  const SITE_URL = rawBase.replace(/\/+$/, ""); // fără trailing slash
-
-  const sitemap = generateSiteMap(SITE_URL);
-
-  res.setHeader("Content-Type", "application/xml");
-  // cache 1h + stale-while-revalidate
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, max-age=0, s-maxage=3600, stale-while-revalidate=600");
-
-  res.write(sitemap);
-  res.end();
+  res.end(xml);
 
   return { props: {} };
 };
-
-export default function SiteMap() {
-  return null;
-}

@@ -1,9 +1,16 @@
 // components/sections/Hero.tsx
-import Image from "next/image";
-import { ReactNode } from "react";
-import * as s from "../../styles/sectionBase.css";
-import * as h from "../../styles/hero.css";
 
+// ==============================
+// Imports
+// ==============================
+import React, { type ReactNode, useId } from "react";
+
+import * as h from "../../styles/hero.css";
+import HeroLCPImage from "../HeroLCPImage";
+
+// ==============================
+// Types
+// ==============================
 type ImgLike = { src: string; alt: string; priority?: boolean };
 
 type Props = {
@@ -16,6 +23,9 @@ type Props = {
   withOverlay?: boolean;
 };
 
+// ==============================
+// Component
+// ==============================
 export default function Hero({
   title,
   subtitle,
@@ -24,29 +34,52 @@ export default function Hero({
   align = "center",
   height = "md",
   withOverlay = true,
-}: Props) {
-  const heightPx =
-    height === "sm" ? "360px" : height === "lg" ? "720px" : undefined;
+}: Props): JSX.Element {
+  const subtitleId = useId();
 
-  const textAlign = align === "start" ? "left" : "center";
-  const placeItems = align === "start" ? "start" : "center";
+  const hCls = height === "lg" ? h.hLg : height === "sm" ? h.hSm : h.hMd;
+  const alignClass = align === "start" ? h.heroAlignStart : h.heroAlignCenter;
+
+  const isPriority = Boolean(image.priority);
 
   return (
-    <section className={s.section}>
-      <div className={`${s.container} ${h.heroWrap}`} style={{ height: heightPx }}>
-        <Image
-          src={image.src}
-          alt={image.alt}
-          fill
-          style={{ objectFit: "cover" }}
-          priority={image.priority}
-        />
-        {withOverlay && <div className={h.overlay} />}
-        <div className={h.heroInner} style={{ textAlign, placeItems }}>
-          <div style={{ maxWidth: 920 }}>
-            <h1 className={h.heroTitle}>{title}</h1>
-            {subtitle && <p className={h.heroSub}>{subtitle}</p>}
-            {cta && <div style={{ marginTop: "1rem" }}>{cta}</div>}
+    <section
+      className={h.hero}
+      aria-labelledby="hero-heading"
+      aria-describedby={subtitle ? subtitleId : undefined}
+    >
+      <div className={`${h.heroWrap} ${hCls}`}>
+        {/* Media layer */}
+        <div className={h.heroMedia}>
+          <div className={h.heroImg}>
+            <HeroLCPImage src={image.src} alt={image.alt} priority={isPriority} sizes="100vw" />
+          </div>
+
+          {withOverlay && (
+            <>
+              <div className={h.heroOverlay} />
+              <div className={h.aurora} />
+              <span className={h.glowBand} aria-hidden />
+              <span className={h.orbA} aria-hidden />
+              <span className={h.orbB} aria-hidden />
+            </>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className={`${h.heroInner} ${alignClass}`}>
+          <div className={h.innerContent}>
+            <h1 id="hero-heading" className={h.heroTitle}>
+              {title}
+            </h1>
+
+            {subtitle ? (
+              <p id={subtitleId} className={h.heroSub}>
+                {subtitle}
+              </p>
+            ) : null}
+
+            {cta ? <div className={h.ctaDock}>{cta}</div> : null}
           </div>
         </div>
       </div>

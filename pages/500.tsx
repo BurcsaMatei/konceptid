@@ -1,28 +1,51 @@
 // pages/500.tsx
-import Head from "next/head";
+
+// ==============================
+// Imports
+// ==============================
+import type { NextPage } from "next";
 import Link from "next/link";
 
-export default function ServerErrorPage() {
-  return (
-    <>
-      <Head>
-        <title>Eroare server – 500</title>
-        <meta name="robots" content="noindex" />
-      </Head>
+import Appear from "../components/animations/Appear";
+import Seo from "../components/Seo";
+import { withBase } from "../lib/config";
+import {
+  errorActions,
+  errorCard,
+  errorInlineLink,
+  errorLink,
+  errorText,
+  errorTitle,
+  errorWrap,
+} from "../styles/errorPages.css";
 
-      <main style={{ minHeight: "60vh", display: "grid", placeItems: "center", padding: "48px 16px" }}>
-        <div style={{ textAlign: "center", maxWidth: 640 }}>
-          <h1 style={{ margin: 0, fontSize: 36 }}>500 – A apărut o eroare</h1>
-          <p style={{ marginTop: 12, color: "#4b5563" }}>
-            Te rugăm încearcă din nou sau revino mai târziu.
-          </p>
-          <div style={{ marginTop: 20 }}>
-            <Link href="/" style={{ color: "#5561F2", fontWeight: 600 }}>
-              Înapoi la Acasă →
-            </Link>
-          </div>
+// ==============================
+// Component
+// ==============================
+const ServerErrorPage: NextPage = () => (
+  <>
+    <Seo title="Eroare server — 500" url="/500" noindex />
+
+    <main className={errorWrap}>
+      <Appear as="section" className={errorCard} role="alert" aria-live="assertive">
+        <h1 className={errorTitle}>500 — A apărut o eroare</h1>
+
+        <p className={errorText}>
+          Te rugăm să încerci din nou sau să revii mai târziu. Dacă problema persistă, ne poți{" "}
+          <Link href={withBase("/contact")} className={errorInlineLink} aria-label="Contactează-ne">
+            contacta
+          </Link>
+          .
+        </p>
+
+        <div className={errorActions}>
+          <Link href={withBase("/")} className={errorLink}>
+            Înapoi la Acasă →
+          </Link>
         </div>
-      </main>
-    </>
-  );
-}
+      </Appear>
+    </main>
+  </>
+);
+
+export default ServerErrorPage;

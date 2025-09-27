@@ -1,113 +1,110 @@
 // pages/cookie-policy.tsx
-import Head from "next/head";
-import { container } from "../styles/container.css";
 
-export default function CookiePolicyPage() {
-  const pageTitle = "Politica Cookie | KonceptID";
-  const pageDesc =
-    "Află cum folosim cookie-urile pe site-ul nostru, ce tipuri de cookie-uri utilizăm și cum le poți gestiona.";
-  const pageUrl = "https://konceptid.com/cookie-policy";
+// ==============================
+// Imports
+// ==============================
+import Appear, { AppearGroup } from "../components/animations/Appear";
+import Seo from "../components/Seo";
+import type { Json } from "../interfaces";
+import { absoluteAssetUrl, absoluteOgImage, absoluteUrl, SITE, withBase } from "../lib/config";
+import { formatDateRo } from "../lib/dates";
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    name: pageTitle,
-    description: pageDesc,
-    url: pageUrl,
-    publisher: {
-      "@type": "Organization",
-      name: "KonceptID",
-      url: "https://konceptid.com",
-      logo: {
-        "@type": "ImageObject",
-        url: "https://konceptid.com/icons/apple-touch-icon.png",
-      },
+// ==============================
+// Constants
+// ==============================
+const CANONICAL_PATH = "/cookie-policy";
+const LAST_UPDATED = formatDateRo(new Date()); // ex: „08 septembrie 2025”
+
+// ==============================
+// JSON-LD
+// ==============================
+const jsonLd: Json = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Politica Cookie",
+  description: "Cum folosim cookie-urile, tipuri și opțiuni de gestionare.",
+  url: absoluteUrl(CANONICAL_PATH),
+  publisher: {
+    "@type": "Organization",
+    name: SITE.name,
+    logo: {
+      "@type": "ImageObject",
+      url: absoluteAssetUrl(SITE.ogImage || "/images/og.jpg"),
     },
-  };
+  },
+} as const;
 
+// ==============================
+// Component
+// ==============================
+export default function CookiePolicyPage(): JSX.Element {
   return (
     <>
-      <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDesc} />
-        <link rel="canonical" href={pageUrl} />
-
-        {/* JSON-LD */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-      </Head>
-
-      
+      <Seo
+        title="Politica Cookie"
+        description="Cum folosim cookie-urile, tipuri și opțiuni de gestionare."
+        url={CANONICAL_PATH}
+        image={absoluteOgImage(SITE.ogImage || "/images/og.jpg")}
+        structuredData={[jsonLd]}
+      />
 
       <main>
-        <div className={container} style={{ padding: "2rem 0" }}>
-          <h1>Politica privind fișierele cookie</h1>
-          <p>
-            Această politică explică ce sunt cookie-urile, cum le folosim pe site-ul
-            nostru și ce opțiuni ai la dispoziție pentru a le gestiona.
-          </p>
+        {/* Layout global: fără padding inline; control prin .section + .container */}
+        <section className="section">
+          <div className="container">
+            {/* Intro animat discret */}
+            <Appear as="header">
+              <h1>Politica privind fișierele cookie</h1>
+              <p>
+                Această politică explică ce sunt cookie-urile, cum le folosim și ce opțiuni ai la
+                dispoziție pentru a le gestiona.
+              </p>
+            </Appear>
 
-          <section>
-            <h2>1. Ce sunt cookie-urile?</h2>
-            <p>
-              Cookie-urile sunt fișiere mici de text plasate pe dispozitivul tău de către
-              site-urile web pe care le vizitezi. Acestea sunt utilizate pe scară largă
-              pentru a permite funcționarea corectă a site-urilor sau pentru a îmbunătăți
-              experiența utilizatorului.
-            </p>
-          </section>
+            {/* Secțiunile de conținut intră pe rând (stagger), fără a rupe layout-ul */}
+            <AppearGroup as="div" stagger={0.1} delay={0.06}>
+              <Appear as="section">
+                <h2>1. Ce sunt cookie-urile?</h2>
+                <p>
+                  Cookie-urile sunt fișiere mici plasate pe dispozitiv de site-urile web vizitate.
+                  Sunt utilizate pentru funcționare, măsurare și personalizare.
+                </p>
+              </Appear>
 
-          <section>
-            <h2>2. Tipuri de cookie-uri pe care le folosim</h2>
-            <ul>
-              <li>
-                <strong>Cookie-uri esențiale:</strong> necesare pentru funcționarea
-                site-ului (ex: autentificare, coș de cumpărături).
-              </li>
-              <li>
-                <strong>Cookie-uri de performanță:</strong> ne ajută să înțelegem cum
-                utilizezi site-ul, pentru a-l îmbunătăți.
-              </li>
-              <li>
-                <strong>Cookie-uri de funcționalitate:</strong> rețin preferințele tale
-                (ex: limbă, locație).
-              </li>
-            </ul>
-          </section>
+              <Appear as="section" delay={0.02}>
+                <h2>2. Tipuri de cookie-uri pe care le folosim</h2>
+                <ul>
+                  <li>
+                    <strong>Esențiale</strong> — necesare funcționării site-ului.
+                  </li>
+                  <li>
+                    <strong>Analitice</strong> — măsurarea anonimă a traficului.
+                  </li>
+                  <li>
+                    <strong>Marketing</strong> — personalizare reclame.
+                  </li>
+                </ul>
+              </Appear>
 
-          <section>
-            <h2>3. Cum poți controla cookie-urile</h2>
-            <p>
-              Poți gestiona sau dezactiva cookie-urile din setările browserului tău.
-              Reține că dezactivarea acestora poate afecta funcționalitatea site-ului.
-            </p>
-            <p>
-              Găsești mai multe informații pe:
-              <br />
-              <a
-                href="https://www.allaboutcookies.org"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                www.allaboutcookies.org
-              </a>
-            </p>
-          </section>
+              <Appear as="section" delay={0.04}>
+                <h2>3. Cum poți controla cookie-urile</h2>
+                <p>
+                  Le poți gestiona din setările browserului sau din{" "}
+                  <a href={withBase("/cookie-settings")}>Setări cookie</a> (dacă sunt disponibile pe
+                  acest site).
+                </p>
+              </Appear>
 
-          <section>
-            <h2>4. Modificări ale politicii cookie</h2>
-            <p>
-              Putem actualiza această politică periodic. Orice modificare va fi publicată
-              pe această pagină, împreună cu data ultimei actualizări.
-            </p>
-            <p><em>Ultima actualizare: {new Date().toLocaleDateString("ro-RO")}</em></p>
-          </section>
-        </div>
+              <Appear as="section" delay={0.06}>
+                <h2>4. Modificări</h2>
+                <p>
+                  <em>Ultima actualizare: {LAST_UPDATED}</em>
+                </p>
+              </Appear>
+            </AppearGroup>
+          </div>
+        </section>
       </main>
-
-      
     </>
   );
 }

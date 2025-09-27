@@ -1,142 +1,259 @@
 // pages/contact.tsx
+
+// ==============================
+// Imports
+// ==============================
 import type { NextPage } from "next";
-import Head from "next/head";
-import Seo from "../components/Seo";
+
+import Appear, { AppearGroup } from "../components/animations/Appear";
+import type { Crumb } from "../components/Breadcrumbs";
 import Breadcrumbs from "../components/Breadcrumbs";
-
-import Hero from "../components/sections/Hero";
-import IntroSection from "../components/sections/IntroSection";
-import ShortText from "../components/sections/ShortText";
-import Separator from "../components/Separator";
-
-import FormContact from "../components/sections/contact/FormContact";
 import ContactInfo from "../components/sections/contact/ContactInfo";
 import ContactMapIframeConsent from "../components/sections/contact/ContactMapIframeConsent";
+import FormContact from "../components/sections/contact/FormContact";
+import Hero from "../components/sections/Hero";
+import IntroSection from "../components/sections/IntroSection";
+import MotivationCards from "../components/sections/MotivationCards";
+import Outro from "../components/sections/Outro";
+import Seo from "../components/Seo";
+import Separator from "../components/Separator";
+import type { Json } from "../interfaces";
+import { absoluteUrl, CONTACT, SITE } from "../lib/config";
 
-// Styles (Vanilla Extract – importă fără .ts)
-import { container } from "../styles/container.css";
-import { mapSectionClass } from "../styles/contact.css";
-
-// Date contact – modificabile rapid
-const contactData = {
-  businessName: "KonceptID",
-  url: "/contact", // path relativ (Seo va construi URL absolut)
-  email: "info@konceptid.com",
-  phone: "+40 751 528 414",
+// ==============================
+// Types
+// ==============================
+type ContactData = {
+  businessName: string;
+  url: string; // path relativ de pagină
+  email: string;
+  phone: string;
   address: {
-    street: "Strada Rozelor 12",
-    city: "Baia Mare",
-    region: "Maramureș",
-    postalCode: "430033",
-    country: "RO",
+    street: string;
+    city: string;
+    region: string;
+    postalCode: string;
+    country: string;
+  };
+  mapEmbedUrl: string;
+};
+
+// ==============================
+// Data (din config centralizat)
+// ==============================
+const contactData: ContactData = {
+  businessName: SITE.name,
+  url: "/contact",
+  email: CONTACT.email,
+  phone: CONTACT.phone,
+  address: {
+    street: CONTACT.address.street,
+    city: CONTACT.address.city,
+    region: CONTACT.address.region,
+    postalCode: CONTACT.address.postal,
+    country: CONTACT.address.country,
   },
-  mapEmbedUrl:
-    "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2721.5714807252453!2d23.5680558156065!3d47.66108459141066!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4739f492c8f20e13%3A0xf7c672fcf49b6a75!2sStrada%20Rozelor%2012%2C%20Baia%20Mare%20430033!5e0!3m2!1sro!2sro!4v1691842833214",
-} as const;
+  mapEmbedUrl: CONTACT.mapEmbed,
+};
 
-// Breadcrumbs + JSON-LD
-const RAW_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-const SITE_URL = RAW_SITE_URL.replace(/\/+$/, "");
+const addressLine = [
+  contactData.address.street,
+  [contactData.address.city, contactData.address.region].filter(Boolean).join(", "),
+  [contactData.address.postalCode, contactData.address.country].filter(Boolean).join(" "),
+]
+  .filter(Boolean)
+  .join(", ");
 
-const crumbs = [
+// ==============================
+// Helpers locale (JSON-LD)
+// ==============================
+function buildBreadcrumbList(pagePath: string): Json {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Acasă", item: absoluteUrl("/") },
+      { "@type": "ListItem", position: 2, name: "Contact", item: absoluteUrl(pagePath) },
+    ],
+  };
+}
+
+function buildContactOrg(data: ContactData): Json {
+  return {
+    "@type": "Organization",
+    name: data.businessName,
+    url: absoluteUrl(data.url),
+    ...(data.phone || data.email
+      ? {
+          contactPoint: {
+            "@type": "ContactPoint",
+            contactType: "customer service",
+            ...(data.phone ? { telephone: data.phone } : {}),
+            ...(data.email ? { email: data.email } : {}),
+          },
+        }
+      : {}),
+    ...((data.address.street ||
+      data.address.city ||
+      data.address.region ||
+      data.address.postalCode ||
+      data.address.country) && {
+      address: {
+        "@type": "PostalAddress",
+        ...(data.address.street ? { streetAddress: data.address.street } : {}),
+        ...(data.address.city ? { addressLocality: data.address.city } : {}),
+        ...(data.address.region ? { addressRegion: data.address.region } : {}),
+        ...(data.address.postalCode ? { postalCode: data.address.postalCode } : {}),
+        ...(data.address.country ? { addressCountry: data.address.country } : {}),
+      },
+    }),
+  };
+}
+
+const breadcrumbList = buildBreadcrumbList(contactData.url);
+const contactJsonLd: Json = {
+  "@context": "https://schema.org",
+  "@type": "ContactPage",
+  mainEntity: buildContactOrg(contactData),
+};
+
+// ==============================
+// Page
+// ==============================
+const crumbs: Crumb[] = [
   { name: "Acasă", href: "/" },
   { name: "Contact", current: true },
 ];
 
-const breadcrumbList = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Acasă", item: `${SITE_URL}/` },
-    { "@type": "ListItem", position: 2, name: "Contact", item: `${SITE_URL}/contact` },
-  ],
-} as const;
-
-const contactJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "ContactPage",
-  mainEntity: {
-    "@type": "Organization",
-    name: contactData.businessName,
-    url: `${SITE_URL}${contactData.url}`,
-    contactPoint: {
-      "@type": "ContactPoint",
-      telephone: contactData.phone,
-      contactType: "customer service",
-      email: contactData.email,
-    },
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: contactData.address.street,
-      addressLocality: contactData.address.city,
-      addressRegion: contactData.address.region,
-      postalCode: contactData.address.postalCode,
-      addressCountry: contactData.address.country,
-    },
-  },
-} as const;
-
 const ContactPage: NextPage = () => (
   <>
-    {/* SEO per pagină */}
     <Seo
       title="Contact"
-      description={`Contact ${contactData.businessName}`}
+      description={SITE.description || "Contactează-ne pentru detalii și ofertă."}
       url={contactData.url}
       image="/images/og-contact.jpg"
+      structuredData={[breadcrumbList, contactJsonLd]}
     />
 
-    {/* JSON-LD */}
-    <Head>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbList) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(contactJsonLd) }}
-      />
-    </Head>
-
-    {/* Breadcrumbs */}
     <Breadcrumbs items={crumbs} />
 
-    {/* === Secțiuni generice === */}
-    <Hero
-      title="Contact"
-      subtitle="Suntem la un mesaj distanță — hai să discutăm proiectul tău."
-      image={{ src: "/images/hero/contact.jpg", alt: "Hero contact", priority: true }}
-      height="md"
-      withOverlay
-    />
-
-    <IntroSection
-      eyebrow="Hai să vorbim"
-      title="Răspundem rapid și concret"
-      lede="Completează formularul sau folosește datele de contact. Pentru întâlniri la sediu, te rugăm să programezi în prealabil."
-    />
-
-    <Separator />
-
-    <ShortText
-      title="Cum preferi să luăm legătura?"
-      subtitle="E-mail, telefon sau formular — alegi varianta care ți se potrivește."
-    />
-
-    {/* Info cards */}
-    <ContactInfo />
-
-    <Separator />
-
-    {/* Formular */}
-    <FormContact />
-
-    <Separator />
-
-    {/* Hartă cu consimțământ (click-to-load) */}
-    <section className={`${container} ${mapSectionClass}`}>
-      <ContactMapIframeConsent src={contactData.mapEmbedUrl} />
+    {/* Hero */}
+    <section className="section">
+      <div className="container">
+        <Appear>
+          <Hero
+            title="Contact"
+            subtitle="Scrie-ne — revenim rapid."
+            image={{ src: "/images/current/hero-contact.jpg", alt: "Hero contact" }}
+            height="md"
+          />
+        </Appear>
+      </div>
     </section>
+
+    <Separator />
+
+    {/* Secțiuni în cascadă */}
+    <AppearGroup stagger={0.12} delay={0.06} amount={0.2}>
+      <section className="section">
+        <div className="container">
+          <Appear>
+            <IntroSection
+              eyebrow="Hai să vorbim"
+              title={`Contact ${contactData.businessName}`}
+              lede="Completează formularul sau folosește datele de mai jos."
+            />
+          </Appear>
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* Formular */}
+      {CONTACT.enabled && (
+        <section className="section">
+          <div className="container">
+            <Appear>
+              <FormContact />
+            </Appear>
+          </div>
+        </section>
+      )}
+
+      <Separator />
+
+      {/* Hartă */}
+      {CONTACT.enabled && contactData.mapEmbedUrl ? (
+        <section className="section" aria-label="Hartă locație">
+          <div className="container">
+            <Appear>
+              <ContactMapIframeConsent src={contactData.mapEmbedUrl} />
+            </Appear>
+          </div>
+        </section>
+      ) : null}
+
+      <Separator />
+
+      {/* Date contact */}
+      {CONTACT.enabled && (
+        <section className="section">
+          <div className="container">
+            <Appear>
+              <ContactInfo
+                businessName={contactData.businessName}
+                address={addressLine || "—"}
+                phone={contactData.phone || "—"}
+                email={contactData.email || "—"}
+              />
+            </Appear>
+          </div>
+        </section>
+      )}
+
+      <Separator />
+
+      {/* Cards + Outro */}
+      <section className="section">
+        <div className="container">
+          <Appear>
+            <MotivationCards
+              items={[
+                {
+                  title: "Procesul nostru",
+                  points: ["Brief & plan clar", "Sprinturi transparente", "QA riguros"],
+                },
+                {
+                  title: "Consultanță & PR",
+                  points: ["Arhitectură & strategie", "SEO & performanță", "Mentorat tehnic"],
+                },
+                {
+                  title: "Clienți mulțumiți",
+                  points: ["SLA răspuns rapid", "Tracking transparent", "Îmbunătățiri continue"],
+                },
+                {
+                  title: "Suport maxim",
+                  points: ["Monitorizare post-lansare", "Patch-uri rapide", "Optimizări periodice"],
+                },
+              ]}
+            />
+          </Appear>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="container">
+          <Appear>
+            <Outro
+              eyebrow="Vrei să intri în contact direct cu noi?"
+              title="Hai să discutăm proiectul tău"
+              lead="Spune-ne ce ai în minte și revenim rapid cu pașii următori."
+              cta={{ label: "Contact", href: "/contact" }}
+            />
+          </Appear>
+        </div>
+      </section>
+    </AppearGroup>
   </>
 );
 

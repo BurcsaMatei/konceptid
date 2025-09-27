@@ -1,19 +1,31 @@
-import * as React from "react";
-import ListItem from "./ListItem";
-import { User } from "../interfaces";
+// components/List.tsx
 
-type Props = {
-  items: User[];
+// ==============================
+// Imports
+// ==============================
+import * as React from "react";
+
+import { type User } from "../interfaces";
+import ListItem from "./ListItem";
+
+// ==============================
+// Types
+// ==============================
+type ListProps = {
+  items: ReadonlyArray<User>;
 };
 
-const List = ({ items }: Props) => (
-  <ul>
-    {items.map((item) => (
-      <li key={item.id}>
-        <ListItem data={item} />
-      </li>
-    ))}
-  </ul>
-);
-
-export default List;
+// ==============================
+// Component
+// ==============================
+export default function List({ items }: ListProps) {
+  return (
+    <ul>
+      {items.map((item) => (
+        <li key={item.id}>
+          <ListItem item={item} />
+        </li>
+      ))}
+    </ul>
+  );
+}

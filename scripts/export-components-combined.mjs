@@ -15,7 +15,11 @@ const fence = (filename, code) => {
 };
 
 const readSafe = async (p) => {
-  try { return await fs.readFile(p, "utf8"); } catch { return null; }
+  try {
+    return await fs.readFile(p, "utf8");
+  } catch {
+    return null;
+  }
 };
 
 const kebab = (s) => s.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
@@ -32,8 +36,8 @@ async function* walk(dir) {
 function guessStylePaths(compPath) {
   const base = path.basename(compPath).replace(/\.(tsx|ts)$/i, ""); // ex: Header
   const candidates = [
-    path.join(STYLES_DIR, `${base}.css.ts`),       // Header.css.ts
-    path.join(STYLES_DIR, `${kebab(base)}.css.ts`) // header.css.ts
+    path.join(STYLES_DIR, `${base}.css.ts`), // Header.css.ts
+    path.join(STYLES_DIR, `${kebab(base)}.css.ts`), // header.css.ts
   ];
   return candidates;
 }
@@ -51,7 +55,12 @@ async function run() {
     // ia primul JSDoc dacă există
     const m = compCode.match(/\/\*\*([\s\S]*?)\*\//);
     if (m) {
-      desc = m[1].split("\n").map(l => l.replace(/^\s*\*\s?/, "").trim()).join(" ").trim() || desc;
+      desc =
+        m[1]
+          .split("\n")
+          .map((l) => l.replace(/^\s*\*\s?/, "").trim())
+          .join(" ")
+          .trim() || desc;
     }
 
     // caută stylesheet-ul
@@ -84,4 +93,7 @@ async function run() {
   console.log("\n📚 Gata: docs/INDEX_COMPONENTS.md + docs/by-component/*");
 }
 
-run().catch(e => { console.error(e); process.exit(1); });
+run().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

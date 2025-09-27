@@ -1,155 +1,143 @@
 // components/sections/contact/FormContact.tsx
-import { card } from "../../../styles/card.css";
-import { container } from "../../../styles/container.css";
-import { center } from "../../../styles/center.css";
-import * as styles from "../../../styles/contact/FormContact.css";
+
+"use client";
+
+// ==============================
+// Imports
+// ==============================
 import React, { useState } from "react";
-import { motion, type Variants, type Transition, useReducedMotion } from "framer-motion";
 
-export function FormContact() {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
-  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
+import { withBase } from "../../../lib/config";
+import * as s from "../../../styles/contact/FormContact.css";
+import Appear from "../../animations/Appear";
+import Button from "../../Button";
+import AnimatedIcon from "../../ui/AnimatedIcon";
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-    setError(null);
-  };
+// ==============================
+// Component
+// ==============================
+export default function FormContact() {
+  const [sending, setSending] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
-      setError("Toate câmpurile sunt obligatorii.");
-      return;
-    }
-    setStatus("sending");
+    setSending(true);
     try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (res.ok) {
-        setStatus("success");
-        setForm({ name: "", email: "", message: "" });
-      } else {
-        throw new Error();
-      }
-    } catch {
-      setStatus("error");
+      await new Promise((r) => setTimeout(r, 800));
+    } finally {
+      setSending(false);
     }
   };
-
-  // Framer Motion
-  const reduceMotion = useReducedMotion();
-  const EASE: Transition["ease"] = [0.22, 1, 0.36, 1];
-  const containerVariants: Variants = {
-    hidden: { opacity: 0, y: 24 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE, when: "beforeChildren", staggerChildren: 0.06 } },
-  };
-  const groupVariants: Variants = {
-    hidden: { opacity: 0, y: 12 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE } },
-  };
-
-  const isSending = status === "sending";
-  const nameErrId = "err-name";
-  const emailErrId = "err-email";
-  const msgErrId = "err-message";
-  const formMsgId = "form-status";
 
   return (
-    <section className={`${container} ${center}`}>
-      <motion.div
-        className={card}
-        variants={reduceMotion ? undefined : containerVariants}
-        initial={reduceMotion ? undefined : "hidden"}
-        whileInView={reduceMotion ? undefined : "visible"}
-        viewport={reduceMotion ? undefined : { once: true, amount: 0.2 }}
-      >
-        <form
-          className={styles.form}
-          onSubmit={handleSubmit}
-          autoComplete="off"
-          aria-busy={isSending}                        // ✅ status form
-          aria-describedby={formMsgId}
-          noValidate
-        >
-          <motion.div className={styles.group} variants={reduceMotion ? undefined : groupVariants}>
-            <label htmlFor="name" className={styles.label}>Nume</label>
-            <input
-              className={styles.input}
-              id="name"
-              name="name"
-              type="text"
-              autoComplete="name"
-              value={form.name}
-              onChange={handleChange}
-              required
-              aria-invalid={!!error && !form.name.trim()}       // ✅ a11y
-              aria-describedby={!!error && !form.name.trim() ? nameErrId : undefined}
-            />
-            {!!error && !form.name.trim() && (
-              <span id={nameErrId} className={styles.error}>Completează numele.</span>
-            )}
-          </motion.div>
+    <div className={s.wrap} aria-labelledby="contact-form-title">
+      {/* Col stânga – FORMULAR */}
+      <Appear as="div" className={s.col}>
+        <form className={s.formBox} onSubmit={onSubmit}>
+          <h2 id="contact-form-title" className={s.formTitle}>
+            Trimite-ne un mesaj
+          </h2>
 
-          <motion.div className={styles.group} variants={reduceMotion ? undefined : groupVariants}>
-            <label htmlFor="email" className={styles.label}>Email</label>
-            <input
-              className={styles.input}
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={form.email}
-              onChange={handleChange}
-              required
-              aria-invalid={!!error && !form.email.trim()}
-              aria-describedby={!!error && !form.email.trim() ? emailErrId : undefined}
-            />
-            {!!error && !form.email.trim() && (
-              <span id={emailErrId} className={styles.error}>Introdu o adresă de email.</span>
-            )}
-          </motion.div>
+          <div className={s.formFields}>
+            <label>
+              Nume
+              <input
+                name="name"
+                type="text"
+                required
+                placeholder="Numele tău"
+                className={s.input}
+              />
+            </label>
 
-          <motion.div className={styles.group} variants={reduceMotion ? undefined : groupVariants}>
-            <label htmlFor="message" className={styles.label}>Mesaj</label>
-            <textarea
-              className={styles.textarea}
-              id="message"
-              name="message"
-              rows={5}
-              value={form.message}
-              onChange={handleChange}
-              required
-              aria-invalid={!!error && !form.message.trim()}
-              aria-describedby={!!error && !form.message.trim() ? msgErrId : undefined}
-            />
-            {!!error && !form.message.trim() && (
-              <span id={msgErrId} className={styles.error}>Te rugăm să scrii mesajul.</span>
-            )}
-          </motion.div>
+            <label>
+              Email
+              <input
+                name="email"
+                type="email"
+                required
+                placeholder="email@exemplu.com"
+                className={s.input}
+              />
+            </label>
 
-          {/* Live region pentru mesaje de stare */}
-          <div id={formMsgId} role="status" aria-live="polite" style={{ minHeight: 20 }}>
-            {status === "success" && <div className={styles.success}>Mesaj trimis cu succes!</div>}
-            {status === "error" && <div className={styles.error}>Eroare la trimitere. Încearcă din nou.</div>}
-            {error && <div className={styles.error}>{error}</div>}
+            <label>
+              Mesaj
+              <textarea
+                name="message"
+                rows={6}
+                required
+                placeholder="Spune-ne pe scurt despre proiect"
+                className={s.textarea}
+              />
+            </label>
           </div>
 
-          <motion.button
-            type="submit"
-            className={styles.button}
-            disabled={isSending}
-            variants={reduceMotion ? undefined : groupVariants}
-          >
-            {isSending ? "Se trimite..." : "Trimite"}
-          </motion.button>
+          <div className={s.submitRow}>
+            <Button type="submit" disabled={sending}>
+              {sending ? "Se trimite..." : "Trimite"}
+            </Button>
+          </div>
         </form>
-      </motion.div>
-    </section>
+      </Appear>
+
+      {/* Col dreapta – CARD informații */}
+      <Appear as="div" className={`${s.col} ${s.infoCol}`} delay={0.12}>
+        <div className={s.infoCard} data-card-root>
+          <header className={s.infoHead}>
+            <h3 className={s.infoTitle}>Răspundem rapid</h3>
+            <p className={s.infoSub}>SLA / timp de răspuns & canale alternative</p>
+          </header>
+
+          {/* listă cu puncte */}
+          <div className={s.list}>
+            <div className={s.listItem}>
+              <AnimatedIcon src={withBase("/icons/contact/clock.svg")} size={22} hoverTilt />
+              <p className={s.itemText}>
+                <strong>Timp de răspuns:</strong> 24–48h în zile lucrătoare.
+              </p>
+            </div>
+
+            <div className={s.listItem}>
+              <AnimatedIcon src={withBase("/icons/contact/calendar.svg")} size={22} hoverTilt />
+              <p className={s.itemText}>
+                <strong>Program:</strong> Luni–Vineri 09:00–18:00, Sâmbătă–Duminică — după caz.
+              </p>
+            </div>
+
+            <div className={s.listItem}>
+              <AnimatedIcon src={withBase("/icons/contact/whatsapp.svg")} size={22} hoverTilt />
+              <p className={s.itemText}>
+                Urgent? Scrie-ne pe WhatsApp:{" "}
+                <a href="https://wa.me/40740123456" aria-label="Scrie pe WhatsApp">
+                  +40 740 123 456
+                </a>
+              </p>
+            </div>
+          </div>
+
+          {/* mini-card de download ghid */}
+          <a
+            className={s.miniCard}
+            href={withBase("/downloads/ghid-pregatire-continut.pdf")}
+            download
+            aria-label="Descarcă Ghid pregătire conținut (PDF)"
+          >
+            <AnimatedIcon src={withBase("/icons/contact/download.svg")} size={22} hoverTilt />
+            <div>
+              <strong>Ghid pregătire conținut</strong>
+              <div className={s.note}>PDF — checklist rapid pentru texte & imagini</div>
+            </div>
+          </a>
+
+          {/* notă GDPR / privacy */}
+          <p className={s.note}>
+            <AnimatedIcon src={withBase("/icons/contact/shield.svg")} size={18} hoverTilt /> Folosim
+            datele doar pentru a reveni la mesajul tău. Nu trimitem spam și nu partajăm datele cu
+            terți.
+          </p>
+        </div>
+      </Appear>
+    </div>
   );
 }
-
-export default FormContact;

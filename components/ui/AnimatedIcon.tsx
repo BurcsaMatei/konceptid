@@ -1,62 +1,129 @@
 // components/ui/AnimatedIcon.tsx
-import { motion, Variants } from "framer-motion";
-import Image from "next/image";
+"use client";
 
-export type AnimatedIconProps = {
+// ==============================
+// Imports
+// ==============================
+import {
+  motion,
+  type MotionStyle,
+  type TargetAndTransition,
+  type Transition,
+  useReducedMotion,
+} from "framer-motion";
+import type { CSSProperties, FC } from "react";
+
+// ==============================
+// Types
+// ==============================
+type ElementTag = "span" | "div" | "i";
+
+type AnimatedIconProps = {
+  /** Calea către SVG-ul folosit ca mască (ex: "/icons/servicii/service1.svg") */
   src: string;
-  alt: string;
-  size?: number;
+  /** Dimensiunea iconului: px (număr) sau unități CSS (ex: "1.25rem", "100%") */
+  size?: number | string;
+  /** Efect de tilt ușor la hover (fără animație continuă) */
   hoverTilt?: boolean;
-  delaySeed?: number;
+  /** Clasă externă pentru culoare/poziționare (moștenește currentColor) */
+  className?: string;
+  /** Dacă vrei accesibilitate; dacă lipsește, icon-ul e decorativ */
+  ariaLabel?: string;
+  /** Stil suplimentar (extinde/override peste stilul de bază) */
+  style?: CSSProperties;
+  /** Tipul de element HTML folosit pentru wrapper */
+  as?: ElementTag;
+  /** Tranziție custom pentru hover (dacă nu e setat, se folosește una implicită) */
+  transition?: Transition;
 };
 
-export default function AnimatedIcon({
+// ==============================
+// Component
+// ==============================
+const AnimatedIcon: FC<AnimatedIconProps> = ({
   src,
-  alt,
-  size = 48,
-  hoverTilt = false,
-  delaySeed = 0,
-}: AnimatedIconProps) {
-  const prefersReduced =
-    typeof window !== "undefined"
-      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      : false;
+  size = 32,
+  hoverTilt = true,
+  className,
+  ariaLabel,
+  style,
+  as = "span",
+  transition,
+}) => {
+  const reduce = useReducedMotion();
 
-  const floatVariants: Variants = {
-    hidden: { opacity: 0, scale: 0.98 },
-    show: prefersReduced
-      ? { opacity: 1, scale: 1 }
-      : { opacity: 1, scale: [1, 1.02, 1] },
+  // Stil de bază prietenos cu DOM (merge și pe motion.*)
+  const baseStyle: CSSProperties = {
+    display: "inline-block",
+    width: size,
+    height: size,
+    backgroundColor: "currentColor",
+    WebkitMaskImage: `url(${src})`,
+    maskImage: `url(${src})`,
+    WebkitMaskRepeat: "no-repeat",
+    maskRepeat: "no-repeat",
+    WebkitMaskPosition: "center",
+    maskPosition: "center",
+    WebkitMaskSize: "contain",
+    maskSize: "contain",
   };
 
-  const tiltVariants: Variants = {
-    hidden: { opacity: 0, scale: 1, rotate: 0, y: 0 },
-    show: { opacity: 1, scale: 1, rotate: 0, y: 0 },
-    hover: {
+  const mergedStyle: CSSProperties = { ...baseStyle, ...(style ?? {}) };
+
+  const defaultTransition: Transition = {
+    type: "spring",
+    stiffness: 260,
+    damping: 18,
+  };
+
+  const shouldAnimate = hoverTilt && !reduce;
+
+  const motionMap = {
+    span: motion.span,
+    div: motion.div,
+    i: motion.i,
+  } as const;
+
+  const ariaHidden = ariaLabel ? undefined : true;
+  const role = ariaLabel ? "img" : undefined;
+
+  // Render — Animated
+  if (shouldAnimate) {
+    const whileHover: TargetAndTransition = {
       rotate: 3,
       y: -2,
-      transition: { type: "spring", stiffness: 200, damping: 8 },
-    },
-  };
+      transition: transition ?? defaultTransition,
+    };
 
-  const floatTransition = prefersReduced
-    ? { duration: 0 }
-    : { duration: 3, repeat: Infinity, repeatType: "mirror" as const };
+    const MotionTag = motionMap[as];
+
+    // Cast local necesar când exactOptionalPropertyTypes=true
+    const motionStyle = mergedStyle as unknown as MotionStyle;
+
+    return (
+      <MotionTag
+        className={className}
+        style={motionStyle}
+        aria-hidden={ariaHidden}
+        aria-label={ariaLabel}
+        role={role}
+        whileHover={whileHover}
+      />
+    );
+  }
+
+  // Render — Static (fără framer-motion)
+  const Tag = as;
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      whileHover={hoverTilt ? "hover" : undefined}
-      variants={hoverTilt ? tiltVariants : floatVariants}
-      transition={hoverTilt ? undefined : floatTransition}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Image src={src} alt={alt} width={size} height={size} />
-    </motion.div>
+    <Tag
+      className={className}
+      style={mergedStyle}
+      aria-hidden={ariaHidden}
+      aria-label={ariaLabel}
+      role={role}
+    />
   );
-}
+};
+
+export default AnimatedIcon;

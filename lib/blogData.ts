@@ -1,23 +1,115 @@
 // lib/blogData.ts
-export type BlogPostLite = {
-  slug: string;
-  title: string;
-  date: string;             // ISO 8601 (ex: "2025-08-12T09:00:00Z")
-  excerpt: string;          // 150-160 caractere pentru meta description
-  coverImage?: string;      // ex: "/images/blog/cover-1.jpg" (din /public)
-  author?: string;          // opțional
-  tags?: string[];          // opțional
-  contentHtml: string;      // HTML simplu (p, h2/h3, ul/ol, img)
-  readingTime?: string;     // ex: "3 min" (opțional)
-  draft?: boolean;          // dacă true => nu se afișează
-};
 
-// === CONFIG SITE URL (pentru canonical/JSON-LD)
+// ==================================================
+// Imports
+// ==================================================
+import { z } from "zod";
+
+// ==================================================
+// Helpers URL & HTML
+// ==================================================
+const isAbsoluteHttpUrl = (s: string) => {
+  try {
+    const u = new URL(s);
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    return false;
+  }
+};
+// /foo.jpg, ./foo.jpg, ../foo.jpg (nu //foo)
+const isRelativePath = (s: string) => /^\/(?!\/)|^\.\.?\/.*/.test(s);
+const isValidImgSrc = (s: string) => isAbsoluteHttpUrl(s) || isRelativePath(s);
+
+function sanitizeBasic(html: string): string {
+  return (
+    html
+      // elimină script tags
+      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+      // elimină event handlers inline: onclick=, onerror= etc.
+      .replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+      // blochează javascript: în href/src
+      .replace(/\s(href|src)\s*=\s*(['"])\s*javascript:[\s\S]*?\2/gi, ' $1="#"')
+      // (4) elimină stiluri inline
+      .replace(/\sstyle\s*=\s*(?:"[^"]*"|'[^']*')/gi, "")
+  );
+}
+
+// ==================================================
+// Zod schema & tipuri inferate (strict + exactOptionalPropertyTypes)
+// ==================================================
+const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export const BlogPostSchema = z
+  .object({
+    slug: z.string().trim().regex(slugRegex, {
+      message: "Slug invalid (doar litere mici, cifre și cratime).",
+    }),
+    title: z.string().trim().min(1).max(140),
+    // (5) validare mai strictă (RFC 3339/ISO) pentru date
+    date: z.string().trim().datetime({ offset: true }),
+    excerpt: z.string().trim().min(80).max(170),
+    coverImage: z
+      .string()
+      .trim()
+      .refine((s) => isValidImgSrc(s), {
+        message:
+          "coverImage trebuie să fie URL http(s) absolut sau cale relativă (/… , ./… , ../…).",
+      })
+      .optional(),
+    author: z.string().trim().min(1).max(80).optional(),
+    tags: z.array(z.string().trim().min(1)).optional(),
+    contentHtml: z.string().trim().min(1),
+    readingTime: z.string().trim().min(1).max(20).optional(),
+    draft: z.boolean().optional(),
+  })
+  .strict();
+
+export const BlogPostListSchema = z.array(BlogPostSchema).superRefine((items, ctx) => {
+  const seen = new Set<string>();
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (!it) continue;
+    const s = it.slug;
+    if (seen.has(s)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Slug duplicat: "${s}"`,
+        path: [i, "slug"],
+      });
+    }
+    seen.add(s);
+  }
+});
+
+/** Tipurile publice — aliniate 100% cu schema (inclusiv undefined pe opționale). */
+export type BlogPost = z.infer<typeof BlogPostSchema>;
+export type BlogPostList = ReadonlyArray<BlogPost>;
+
+// ==================================================
+// Config SITE_URL (canonical/JSON-LD)
+// ==================================================
+// (1) Fix: preferința trailing slash se citește din valoarea BRUTĂ a env-ului
 const RAW_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const PREFER_TRAILING = /\/$/.test(process.env.NEXT_PUBLIC_SITE_URL ?? "");
+// fără slash final pentru baza absolută
 export const SITE_URL = RAW_SITE_URL.replace(/\/+$/, "");
 
-// === BAZA DE ARTICOLE (editezi / adaugi aici) ===============================
-export const POSTS: BlogPostLite[] = [
+function alignTrailingSlash(pathname: string): string {
+  if (!pathname) return "/";
+  const ensureLeading = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  if (PREFER_TRAILING) {
+    return ensureLeading.endsWith("/") ? ensureLeading : `${ensureLeading}/`;
+  }
+  if (ensureLeading !== "/" && ensureLeading.endsWith("/")) {
+    return ensureLeading.replace(/\/+$/, "");
+  }
+  return ensureLeading;
+}
+
+// ==================================================
+// 📝 BLOG DATA — AICI SE EDITEAZĂ/ADAUGĂ ARTICOLELE
+// ==================================================
+const POSTS_RAW = [
   {
     slug: "tendinte-design-2025",
     title: "Tendințe de design 2025 pentru site-uri de prezentare",
@@ -36,7 +128,7 @@ export const POSTS: BlogPostLite[] = [
   <li>Imagini locale, <em>lazy</em> și compresate</li>
   <li>CTA clar, deasupra pliului</li>
 </ol>
-`,
+`.trim(),
   },
   {
     slug: "ghid-organizare-eveniment",
@@ -57,7 +149,7 @@ export const POSTS: BlogPostLite[] = [
   <li>Contracte & logistică</li>
 </ul>
 <p>Reia planul săptămânal și păstrează legătura cu furnizorii.</p>
-`,
+`.trim(),
   },
   {
     slug: "viteza-site-core-web-vitals",
@@ -77,7 +169,7 @@ export const POSTS: BlogPostLite[] = [
   <li>Folosește <code>font-display: swap</code> și preîncarcă fonturile critice</li>
   <li>Amână scripturile neesențiale și elimină CSS nefolosit</li>
 </ul>
-`,
+`.trim(),
   },
   {
     slug: "structurare-continut-seo",
@@ -97,7 +189,7 @@ export const POSTS: BlogPostLite[] = [
   <li>Dezvoltare în 2-3 puncte cheie</li>
   <li>Concluzie cu CTA</li>
 </ol>
-`,
+`.trim(),
   },
   {
     slug: "nextjs-ssg-vs-ssr-alegere",
@@ -116,7 +208,7 @@ export const POSTS: BlogPostLite[] = [
   <li>Conținut care se schimbă la minut</li>
   <li>Personalizare pe utilizator</li>
 </ul>
-`,
+`.trim(),
   },
   {
     slug: "imagini-eficiente-webp-avif",
@@ -136,7 +228,7 @@ export const POSTS: BlogPostLite[] = [
   <li>Definește <code>sizes</code> pentru layout responsive</li>
   <li>Folosește imagini <em>lazy</em> în afara pliului</li>
 </ul>
-`,
+`.trim(),
   },
   {
     slug: "microcopy-cta-conversii",
@@ -154,7 +246,7 @@ export const POSTS: BlogPostLite[] = [
   <li>„Solicită ofertă în 24h”</li>
   <li>„Vezi portofoliul complet”</li>
 </ul>
-`,
+`.trim(),
   },
   {
     slug: "audit-seo-rapid-checklist",
@@ -174,23 +266,99 @@ export const POSTS: BlogPostLite[] = [
   <li>Performanță (Lighthouse)</li>
   <li>Conținut (intenție & relevanță)</li>
 </ol>
-`,
+`.trim(),
   },
-];
+] satisfies ReadonlyArray<Partial<z.input<typeof BlogPostSchema>>>;
 
-// === UTILE: listă + un articol =============================================
-export function getAllPosts(): BlogPostLite[] {
-  return POSTS
-    .filter((p) => !p.draft)
-    .slice()
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+// ==================================================
+// Validare & normalizare la import
+// ==================================================
+const VALIDATED_POSTS: ReadonlyArray<z.output<typeof BlogPostSchema>> = BlogPostListSchema.parse(
+  POSTS_RAW.map((p) => ({
+    ...p,
+    // (2) normalizare tag-uri: trim + lowercase
+    ...(p.tags ? { tags: p.tags.map((t) => t.trim().toLowerCase()) } : {}),
+    contentHtml: sanitizeBasic(String(p.contentHtml ?? "")),
+  })),
+);
+
+// adaugă timestamp pentru sortare; tip compatibil cu exactOptionalPropertyTypes
+type BlogPostWithTs = BlogPost & { timestamp: number };
+
+const POSTS_WITH_TS: ReadonlyArray<BlogPostWithTs> = VALIDATED_POSTS.map((p) => ({
+  ...p,
+  timestamp: Date.parse(p.date),
+}));
+
+// draft-urile ascunse în PROD
+const IS_PROD = process.env.NODE_ENV === "production";
+const PUBLIC_POSTS_SORTED: ReadonlyArray<BlogPostWithTs> = POSTS_WITH_TS.filter(
+  (p) => !p.draft || !IS_PROD,
+)
+  .slice()
+  .sort((a, b) => b.timestamp - a.timestamp);
+
+// ==================================================
+// API utilitare (public)
+// ==================================================
+export function getAllPosts(): BlogPostList {
+  return PUBLIC_POSTS_SORTED.map(({ timestamp, ...p }) => p);
 }
 
-export function getPostBySlug(slug: string): BlogPostLite | null {
-  const p = POSTS.find((x) => x.slug === slug && !x.draft);
-  return p || null;
+export function getPostBySlug(slug: string): BlogPost | null {
+  const found = PUBLIC_POSTS_SORTED.find((x) => x.slug === slug);
+  if (!found) return null;
+  const { timestamp, ...p } = found;
+  return p;
+}
+
+export function getRecent(n: number): BlogPostList {
+  return PUBLIC_POSTS_SORTED.slice(0, Math.max(0, n)).map(({ timestamp, ...p }) => p);
+}
+
+// (2) căutare după tag insensibilă la caz & spații (tag-urile din store sunt deja lowercase)
+export function getPostsByTag(tag: string): BlogPostList {
+  const q = tag.trim().toLowerCase();
+  return PUBLIC_POSTS_SORTED.filter((p) => p.tags?.some((t) => t === q)).map(
+    ({ timestamp, ...p }) => p,
+  );
+}
+
+// (3) listă unică de tag-uri (lowercase), sortată alfabetic
+export function getAllTags(): readonly string[] {
+  const set = new Set<string>();
+  for (const p of PUBLIC_POSTS_SORTED) {
+    if (p.tags) for (const t of p.tags) set.add(t);
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b));
+}
+
+// (3) articole „similare” după overlap de tag-uri; ordonate după scor desc, apoi recență
+export function getRelatedByTags(slug: string, limit = 3): BlogPostList {
+  const base = PUBLIC_POSTS_SORTED.find((p) => p.slug === slug);
+  if (!base || !base.tags || base.tags.length === 0) return [];
+  const baseTags = new Set(base.tags);
+
+  const scored = PUBLIC_POSTS_SORTED.filter((p) => p.slug !== slug)
+    .map((p) => {
+      const overlap = p.tags?.reduce((acc, t) => acc + (baseTags.has(t) ? 1 : 0), 0) ?? 0;
+      return { p, overlap };
+    })
+    .filter(({ overlap }) => overlap > 0)
+    .sort((a, b) => {
+      if (b.overlap !== a.overlap) return b.overlap - a.overlap;
+      return b.p.timestamp - a.p.timestamp;
+    })
+    .slice(0, Math.max(0, limit))
+    .map(({ p }) => {
+      const { timestamp, ...rest } = p;
+      return rest;
+    });
+
+  return scored;
 }
 
 export function canonicalFor(pathname: string): string {
-  return `${SITE_URL}${pathname.startsWith("/") ? "" : "/"}${pathname}`;
+  const normalizedPath = alignTrailingSlash(pathname || "/");
+  return `${SITE_URL}${normalizedPath}`;
 }

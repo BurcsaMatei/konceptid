@@ -1,97 +1,222 @@
 // pages/_app.tsx
-import type { AppProps } from "next/app";
-import Head from "next/head";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import SkipLink from "../components/SkipLink";
-import { container } from "../styles/container.css";
+
+// ==============================
+// Imports
+// ==============================
+// Global styles / vendor CSS (order matters)
 import "../styles/globals.css";
-import CookieProvider from "../components/cookies/CookieProvider";
-
-// Lightbox CSS global
+import "../styles/theme.global.css"; // mapează tokens → elemente
 import "yet-another-react-lightbox/styles.css";
+import "yet-another-react-lightbox/plugins/captions.css";
 
-// next/font/google — self-hosted (fără link extern)
-import { Inter, Poppins } from "next/font/google";
+import type { AppProps } from "next/app";
+import dynamic from "next/dynamic";
+import { createContext, useContext, useEffect, useState } from "react";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
+// App providers / layout
+import CookieProvider from "../components/cookies/CookieProvider";
+import Layout from "../components/Layout";
+// ---- type-only imports pentru a DERIVA exact props-urile componentelor (nu intră în bundle)
+import type ServiceWorkerRegisterComponent from "../components/ServiceWorkerRegister";
+// Helpers config
+import { withBase } from "../lib/config";
+// Container scope + tema implicită (Vanilla Extract) — wrapper global permis
+import { containerThemeDefault, pageScope } from "../styles/container.css";
+// Theme classes (Vanilla Extract)
+import { themeClassDark, themeClassLight } from "../styles/theme.css";
+type ServiceWorkerRegisterProps = React.ComponentProps<typeof ServiceWorkerRegisterComponent>;
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-  variable: "--font-poppins",
-  display: "swap",
-});
+import type InstallAppButtonComponent from "../components/InstallAppButton";
+type InstallAppButtonProps = React.ComponentProps<typeof InstallAppButtonComponent>;
 
-// META / OG defaults (fallback; paginile le pot suprascrie prin <Seo />)
-const defaultUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-const defaultTitle = "Agenție web design și digital | KonceptID";
-const defaultDesc =
-  "Lorem ipsum dolores sit amet. Exemplu meta description pentru proiectul tău base-template.";
-const defaultImg = "/images/og.jpg";
-const defaultAuthor = "KonceptID – Agenție web design și digital";
+// ==============================
+// Constante & Utils (SSR-safe)
+// ==============================
+type ThemeMode = "light" | "dark";
 
-export default function MyApp({ Component, pageProps }: AppProps) {
+const THEME_KEY = "theme" as const;
+const PREFERS_DARK_QUERY = "(prefers-color-scheme: dark)" as const;
+const isProd = process.env.NODE_ENV === "production";
+
+// === PWA gating (build-time) ===
+const ENABLE_PWA = process.env.NEXT_PUBLIC_ENABLE_PWA === "1" && isProd;
+
+// Definim referințe care vor primi componentele doar când PWA este ON la build.
+let ServiceWorkerRegisterDynamic: React.ComponentType<ServiceWorkerRegisterProps> | null = null;
+let InstallAppButtonDynamic: React.ComponentType<InstallAppButtonProps> | null = null;
+
+if (ENABLE_PWA) {
+  ServiceWorkerRegisterDynamic = dynamic<ServiceWorkerRegisterProps>(
+    () => import("../components/ServiceWorkerRegister"),
+    { ssr: false },
+  );
+  InstallAppButtonDynamic = dynamic<InstallAppButtonProps>(
+    () => import("../components/InstallAppButton"),
+    { ssr: false },
+  );
+}
+
+/** Dev-only warning (nu poluează consola în producție) */
+function devWarn(message: string): void {
+  if (!isProd && typeof console !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.warn(`[KonceptID] ${message}`);
+  }
+}
+
+/** localStorage safe (evită excepții în privacy mode / SSR) */
+const safeStorage = {
+  get(key: string): string | null {
+    try {
+      if (typeof window === "undefined") return null;
+      return window.localStorage.getItem(key);
+    } catch {
+      devWarn("localStorage indisponibil (get).");
+      return null;
+    }
+  },
+  set(key: string, value: string): void {
+    try {
+      if (typeof window === "undefined") return;
+      window.localStorage.setItem(key, value);
+    } catch {
+      devWarn("localStorage indisponibil (set).");
+    }
+  },
+};
+
+// ==============================
+// Theme Context (intern aplicației)
+// ==============================
+type ThemeContextValue = {
+  theme: ThemeMode;
+  setTheme: (t: ThemeMode) => void;
+  userOverride: boolean;
+  setUserOverride: (v: boolean) => void;
+  toggle: () => void;
+};
+
+const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+/** Hook public minim pentru accesul la temă din orice componentă */
+export function useTheme(): ThemeContextValue {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error("useTheme must be used within <App />");
+  return ctx;
+}
+
+// ==============================
+// Component
+// ==============================
+export default function App({ Component, pageProps }: AppProps) {
+  const [theme, setTheme] = useState<ThemeMode>("light");
+  const [userOverride, setUserOverride] = useState<boolean>(false); // true dacă userul a setat manual în localStorage
+
+  // 1) Init din localStorage / system preference (SSR-safe)
+  useEffect(() => {
+    const saved = safeStorage.get(THEME_KEY);
+    if (saved === "light" || saved === "dark") {
+      setTheme(saved);
+      setUserOverride(true);
+      return;
+    }
+
+    if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+      const mq = window.matchMedia(PREFERS_DARK_QUERY);
+      setTheme(mq.matches ? "dark" : "light");
+      setUserOverride(false);
+    } else {
+      devWarn("window.matchMedia nu este disponibil; fallback pe tema 'light'.");
+      setTheme("light");
+      setUserOverride(false);
+    }
+  }, []);
+
+  // 2) Reacționează la schimbarea preferinței de sistem (doar dacă nu există override de la user)
+  useEffect(() => {
+    if (userOverride) return;
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+
+    const mq = window.matchMedia(PREFERS_DARK_QUERY);
+    const onChange = (): void => setTheme(mq.matches ? "dark" : "light");
+
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    }
+    const legacy = mq as unknown as {
+      addListener?: (cb: () => void) => void;
+      removeListener?: (cb: () => void) => void;
+    };
+    if (typeof legacy.addListener === "function" && typeof legacy.removeListener === "function") {
+      legacy.addListener(onChange);
+      return () => legacy.removeListener!(onChange);
+    }
+  }, [userOverride]);
+
+  // 3) Sync între tab-uri (user schimbă tema într-un alt tab)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onStorage = (e: StorageEvent): void => {
+      if (e.key === THEME_KEY && (e.newValue === "light" || e.newValue === "dark")) {
+        setTheme(e.newValue);
+        setUserOverride(true);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  // 4) Aplică tema pe <html> (semantic + clase VE) și persistă (SSR-safe)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement; // <html>
+
+    root.classList.remove("light", "dark", themeClassLight, themeClassDark);
+    root.setAttribute("data-theme", theme);
+
+    if (theme === "dark") {
+      root.classList.add("dark", themeClassDark);
+    } else {
+      root.classList.add("light", themeClassLight);
+    }
+
+    safeStorage.set(THEME_KEY, theme);
+  }, [theme]);
+
   return (
-    // inter.className aplică efectiv fontul; .variable expune CSS var dacă o folosești în stiluri
-    <div className={`${inter.className} ${inter.variable} ${poppins.variable}`}>
-      <Head>
-        {/* Fallback META – paginile vor suprascrie prin <Seo /> */}
-        <title>{defaultTitle}</title>
-        <meta name="description" content={defaultDesc} />
-        <meta name="author" content={defaultAuthor} />
-        <meta name="robots" content="index, follow" />
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="initial-scale=1.0, width=device-width" />
-        <meta name="theme-color" content="#78B688" />
-
-
-        {/* ⚠️ Eliminat canonical global: fiecare pagină își setează canonical corect prin <Seo /> */}
-        {/* <link rel="canonical" href={defaultUrl} /> */}
-
-        {/* Favicon + PWA/Manifest */}
-        <link rel="icon" href="/favicon.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
-        <link rel="manifest" href="/site.webmanifest" />
-        <meta name="theme-color" content="#5561F2" />
-
-        {/* Open Graph defaults */}
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content={defaultTitle} />
-        <meta property="og:description" content={defaultDesc} />
-        <meta property="og:image" content={defaultImg} />
-        <meta property="og:url" content={defaultUrl} />
-        <meta property="og:site_name" content="KonceptID" />
-
-        {/* Twitter Card defaults */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={defaultTitle} />
-        <meta name="twitter:description" content={defaultDesc} />
-        <meta name="twitter:image" content={defaultImg} />
-        <meta name="twitter:site" content="@konceptid" />
-      </Head>
-
-      <CookieProvider>
-        <SkipLink />
-        <Header />
-
-        <main>
-          <div id="main-content" className={container}>
+    <CookieProvider>
+      <ThemeContext.Provider
+        value={{
+          theme,
+          setTheme,
+          userOverride,
+          setUserOverride,
+          toggle: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
+        }}
+      >
+        {/* Scope global + tema implicită a containerului → afectează toate <section>-urile */}
+        <div className={`${pageScope} ${containerThemeDefault}`}>
+          <Layout>
             <Component {...pageProps} />
-          </div>
-        </main>
+          </Layout>
+        </div>
 
-        <Footer />
+        {/* Service worker — ON doar în producție + NEXT_PUBLIC_ENABLE_PWA=1 */}
+        {ENABLE_PWA && ServiceWorkerRegisterDynamic && (
+          <ServiceWorkerRegisterDynamic
+            swUrl={withBase("/sw.js")}
+            scope={withBase("/")}
+            autoReloadOnUpdate
+            updateOn="visibilitychange"
+            debug={!isProd}
+          />
+        )}
 
-        {/* Overlay Lightbox peste header */}
-        <style jsx global>{`
-          .yarl__root { z-index: 5000; }
-        `}</style>
-      </CookieProvider>
-    </div>
+        {/* Buton instalare PWA — chunk încărcat doar când PWA e permis */}
+        {ENABLE_PWA && InstallAppButtonDynamic && <InstallAppButtonDynamic />}
+      </ThemeContext.Provider>
+    </CookieProvider>
   );
 }

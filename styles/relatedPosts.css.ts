@@ -1,6 +1,13 @@
 // styles/relatedPosts.css.ts
+
+// ==============================
+// Imports
+// ==============================
 import { style } from "@vanilla-extract/css";
 
+// ==============================
+// Classes
+// ==============================
 export const relatedWrapClass = style({
   maxWidth: 820,
   margin: "32px auto 64px",
@@ -23,7 +30,5 @@ export const relatedListClass = style({
 export const relatedLinkClass = style({
   color: "#0ea5e9",
   textDecoration: "underline",
-  selectors: {
-    "&:hover": { textDecoration: "none" },
-  },
+  selectors: { "&:hover": { textDecoration: "none" } },
 });

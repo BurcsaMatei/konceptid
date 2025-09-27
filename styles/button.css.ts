@@ -1,118 +1,166 @@
 // styles/button.css.ts
-import { style } from "@vanilla-extract/css";
-import { vars } from "./tokens.css";
 
-/**
- * Bază comună pentru toate butoanele (link <a> sau <button>)
- * - focus accesibil (WCAG)
- * - padding, radius, font
- * - tranziții discrete (dezactivate la prefers-reduced-motion)
- */
-const baseButton = style({
+// ==============================
+// Imports
+// ==============================
+import { globalStyle, style } from "@vanilla-extract/css";
+
+import { vars } from "./theme.css";
+
+// ==============================
+// Constants
+// Tranziții consistente + token contur (alb implicit; override via CSS var)
+// ==============================
+const transition = [
+  `background-color ${vars.motion.normal} ${vars.motion.easing}`,
+  `color ${vars.motion.normal} ${vars.motion.easing}`,
+  `border-color ${vars.motion.normal} ${vars.motion.easing}`,
+  `box-shadow ${vars.motion.normal} ${vars.motion.easing}`,
+  `opacity ${vars.motion.normal} ${vars.motion.easing}`,
+].join(", ");
+
+const outlineColor = "var(--btn-outline, #fff)";
+
+// ==============================
+// Classes
+// ==============================
+
+// Base
+export const btn = style({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 10,
-
-  padding: "10px 16px",
-  borderRadius: 12,
-  border: "1px solid transparent",
-
-  fontFamily: vars.font.base,
+  gap: vars.space.sm,
   fontWeight: 700,
-  fontSize: "15px",
-  lineHeight: 1.2,
-  textDecoration: "none",
-  whiteSpace: "nowrap",
-
+  lineHeight: 1,
+  borderRadius: vars.radius.lg,
+  border: "1px solid transparent", // border real → transparent; conturul alb e „ring”
   cursor: "pointer",
   userSelect: "none",
+  textDecoration: "none",
+  transition,
   WebkitTapHighlightColor: "transparent",
-
-  transition: "background-color .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .08s ease",
-
+  padding: "10px 14px",
   selectors: {
+    "&:hover": {},
+    "&:active": {},
+    "&:focus": { outline: "none" },
     "&:focus-visible": {
-      outline: "3px solid #2563eb",
-      outlineOffset: 2,
+      boxShadow: `0 0 0 2px ${vars.color.bg}, 0 0 0 4px ${vars.color.focus}`,
+    },
+    "&[aria-busy='true']": { cursor: "progress" },
+  },
+});
+
+// Link intern din buton (fără underline)
+globalStyle(`${btn} a`, { textDecoration: "none" });
+
+// Sizes
+export const sm = style({
+  padding: "8px 12px",
+  borderRadius: vars.radius.md ?? vars.radius.lg,
+});
+
+export const lg = style({
+  padding: "14px 18px",
+  borderRadius: vars.radius.xl ?? vars.radius.lg,
+});
+
+// Variants — primary
+export const primary = style({
+  background: vars.color.primary,
+  color: "#fff",
+  boxShadow: `inset 0 0 0 2px ${outlineColor}`,
+  selectors: {
+    "&:hover": {
+      background: `linear-gradient(135deg, ${vars.color.primary} 0%, ${vars.color.secondary} 100%)`,
+      boxShadow: `inset 0 0 0 2px ${outlineColor}, ${vars.shadow.lg}`,
     },
     "&:active": {
-      transform: "translateY(1px)",
+      background: `linear-gradient(135deg, ${vars.color.secondary} 0%, ${vars.color.primary} 100%)`,
+      boxShadow: `inset 0 0 0 2px ${outlineColor}, ${vars.shadow.md}`,
     },
-    "&:disabled, &[aria-disabled='true']": {
-      opacity: 0.6,
-      cursor: "not-allowed",
-      pointerEvents: "none",
-    },
-  },
-
-  "@media": {
-    "(prefers-reduced-motion: reduce)": {
-      transition: "none",
+    "&:focus-visible": {
+      boxShadow: `inset 0 0 0 2px ${outlineColor}, 0 0 0 2px ${vars.color.bg}, 0 0 0 4px ${vars.color.focus}`,
     },
   },
 });
 
-/**
- * Variantă PRIMARY
- * - fundal brand, text alb
- * - hover: ușor mai întunecat / secundar
- */
-const primary = style([
-  baseButton,
-  {
-    background: vars.color.primary,
-    color: "#fff",
-    borderColor: vars.color.primary,
-    boxShadow: "0 8px 22px rgba(85,97,242,0.22)",
-
-    selectors: {
-      "&:hover:not(:disabled):not([aria-disabled='true'])": {
-        background: vars.color.secondary, // poți înlocui cu o nuanță mai închisă a brandului
-        borderColor: vars.color.secondary,
-        boxShadow: "0 10px 26px rgba(85,97,242,0.28)",
-      },
-      "&:active:not(:disabled):not([aria-disabled='true'])": {
-        transform: "translateY(1px)",
-        boxShadow: "0 8px 20px rgba(85,97,242,0.22)",
-      },
+// Variants — secondary
+export const secondary = style({
+  background: vars.color.surface,
+  color: vars.color.text,
+  boxShadow: `inset 0 0 0 2px ${outlineColor}`,
+  selectors: {
+    "&:hover": {
+      background: `linear-gradient(135deg, ${vars.color.primary} 0%, ${vars.color.secondary} 100%)`,
+      color: "#fff",
+      boxShadow: `inset 0 0 0 2px ${outlineColor}, ${vars.shadow.lg}`,
+    },
+    "&:active": {
+      background: `linear-gradient(135deg, ${vars.color.secondary} 0%, ${vars.color.primary} 100%)`,
+      color: "#fff",
+      boxShadow: `inset 0 0 0 2px ${outlineColor}, ${vars.shadow.md}`,
+    },
+    "&:focus-visible": {
+      boxShadow: `inset 0 0 0 2px ${outlineColor}, 0 0 0 2px ${vars.color.bg}, 0 0 0 4px ${vars.color.focus}`,
     },
   },
-]);
+});
 
-/**
- * Variantă SECONDARY
- * - fundal alb, border color → brand
- * - hover: fundal subtil gri deschis
- */
-const secondary = style([
-  baseButton,
-  {
-    background: "#fff",
-    color: vars.color.primary,
-    borderColor: vars.color.primary,
-    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-
-    selectors: {
-      "&:hover:not(:disabled):not([aria-disabled='true'])": {
-        background: "#f3f4f6",
-        borderColor: vars.color.secondary,
-        color: vars.color.secondary,
-        boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-      },
-      "&:active:not(:disabled):not([aria-disabled='true'])": {
-        transform: "translateY(1px)",
-        boxShadow: "0 4px 14px rgba(0,0,0,0.06)",
-      },
+// Variants — ghost
+export const ghost = style({
+  background: "transparent",
+  color: vars.color.text,
+  borderColor: "transparent",
+  selectors: {
+    "&:hover": { background: vars.color.surfaceActive },
+    "&:active": { background: vars.color.surfaceActive },
+    "&:focus-visible": {
+      boxShadow: `0 0 0 2px ${vars.color.bg}, 0 0 0 4px ${vars.color.focus}`,
     },
   },
-]);
+});
 
-/**
- * Export map pentru componenta <Button />
- * Folosire: className={buttonClass.primary} / .secondary
- */
-export const buttonClass = {
-  primary,
-  secondary,
-};
+// Variants — link
+export const link = style({
+  background: "transparent",
+  color: vars.color.link,
+  borderColor: "transparent",
+  textDecoration: "underline",
+  textUnderlineOffset: "3px",
+  selectors: {
+    "&:hover": { color: vars.color.linkHover },
+    "&:active": { color: vars.color.linkHover },
+    "&:focus-visible": {
+      textDecorationThickness: "2px",
+      boxShadow: `0 0 0 2px ${vars.color.bg}, 0 0 0 4px ${vars.color.focus}`,
+    },
+  },
+});
+
+// Modifiers
+export const fullWidth = style({ width: "100%" });
+
+export const iconOnly = style({
+  padding: 0,
+  width: "40px",
+  height: "40px",
+  borderRadius: vars.radius.lg,
+});
+globalStyle(`${iconOnly} svg`, { pointerEvents: "none" });
+globalStyle(`${iconOnly} img`, { pointerEvents: "none" });
+
+// States
+export const disabled = style({
+  opacity: 0.6,
+  cursor: "not-allowed",
+  pointerEvents: "none",
+});
+
+// aria-disabled pe link-uri
+globalStyle(`${btn}[aria-disabled='true']`, {
+  opacity: 0.6,
+  cursor: "not-allowed",
+  pointerEvents: "none",
+});

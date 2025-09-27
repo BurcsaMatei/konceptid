@@ -1,30 +1,28 @@
 // components/blog/RelatedPosts.tsx
-import Link from "next/link";
-import {
-  relatedWrapClass,
-  relatedTitleClass,
-  relatedListClass,
-  relatedLinkClass,
-} from "../../styles/relatedPosts.css"
+"use client";
 
-type Item = { slug: string; title: string };
+// ==============================
+// Imports
+// ==============================
+import dynamic from "next/dynamic";
+import type { ComponentType } from "react";
 
-export default function RelatedPosts({ items }: { items: Item[] }) {
-  if (!items || items.length === 0) return null;
-  return (
-    <section className={relatedWrapClass} aria-labelledby="related-posts-title">
-      <h3 id="related-posts-title" className={relatedTitleClass}>
-        Poate te mai interesează și:
-      </h3>
-      <ul className={relatedListClass}>
-        {items.map((p) => (
-          <li key={p.slug}>
-            <Link href={`/blog/${p.slug}`} className={relatedLinkClass}>
-              {p.title}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
+// ==============================
+// Types
+// ==============================
+import type { RelatedPostsProps } from "./RelatedPosts.lazy";
+
+// ==============================
+// Dynamic import
+// ==============================
+const RelatedPostsLazy = dynamic(() => import("./RelatedPosts.lazy"), {
+  ssr: true,
+  loading: () => null,
+}) as ComponentType<RelatedPostsProps>;
+
+// ==============================
+// Component
+// ==============================
+export default function RelatedPosts(props: RelatedPostsProps) {
+  return <RelatedPostsLazy {...props} />;
 }

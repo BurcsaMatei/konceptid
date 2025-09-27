@@ -1,93 +1,139 @@
-// styles/contact/FormContact.css.ts
+// styles/contact/formContact.css.ts
+
+// ==============================
+// Imports
+// ==============================
 import { style } from "@vanilla-extract/css";
-import { vars } from "../tokens.css";
 
-export const formCard = style({
-  // Padding controlat local pentru cardul formularului
-  padding: "32px 24px",
+import { mq, vars } from "../theme.css";
+
+// ==============================
+// Classes
+// ==============================
+
+// Tokens & utilities
+const cardBase = {
+  background: vars.color.surface,
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: vars.radius.lg,
+  boxShadow: vars.shadow.sm,
+  padding: vars.space.lg,
+  transition: `transform ${vars.motion.normal} ${vars.motion.easing}, box-shadow ${vars.motion.normal} ${vars.motion.easing}, border-color ${vars.motion.normal} ${vars.motion.easing}, background ${vars.motion.normal} ${vars.motion.easing}`,
+} as const;
+
+// Layout
+export const wrap = style({
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: vars.space.lg,
+  alignItems: "stretch",
+  "@media": { [mq.lg]: { gridTemplateColumns: "1fr 1fr" } },
 });
 
-export const form = style({
+export const col = style({
   display: "flex",
-  flexDirection: "column",
-  gap: vars.spacing.lg,
-  padding: 0, // fără padding aici; îl controlează formCard
+  alignItems: "stretch",
 });
 
-export const group = style({
-  display: "flex",
-  flexDirection: "column",
-  gap: vars.spacing.xs,
+export const infoCol = style({
+  "@media": {
+    [mq.lg]: {
+      borderLeft: `1px solid ${vars.color.border}`,
+      paddingLeft: vars.space.lg,
+    },
+  },
 });
 
-export const label = style({
-  fontWeight: 500,
-  fontFamily: vars.font.base,
-  fontSize: "15px",
-  color: vars.color.primary,
-  marginBottom: 2,
-});
-
-export const input = style({
-  border: `1px solid ${vars.color.secondary}`,
-  borderRadius: vars.radius.base,
-  padding: `${vars.spacing.sm} ${vars.spacing.md}`,
-  fontFamily: vars.font.base,
-  fontSize: "15px",
-  color: vars.color.text,
-  background: vars.color.background,
-  outline: "none",
-  transition: "border-color .2s",
+// Cards
+export const formBox = style({
+  ...cardBase,
+  flex: 1,
   selectors: {
-    "&:focus": {
+    "&:hover": {
+      transform: "translateY(-2px)",
+      boxShadow: vars.shadow.md,
       borderColor: vars.color.primary,
+      background: vars.color.surfaceHover,
     },
   },
+  "@media": { "(prefers-reduced-motion: reduce)": { transition: "none" } },
 });
 
-export const textarea = style([
-  input,
-  {
-    minHeight: 90,
-    resize: "vertical",
-  },
-]);
-
-export const button = style({
-  alignSelf: "flex-start",
-  background: vars.color.primary,
-  color: "#fff",
-  border: "none",
-  padding: `${vars.spacing.sm} ${vars.spacing.lg}`,
-  borderRadius: vars.radius.base,
-  fontWeight: 600,
-  fontFamily: vars.font.base,
-  fontSize: "15px",
-  cursor: "pointer",
-  transition: "background .2s",
+export const infoCard = style({
+  ...cardBase,
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  gap: vars.space.md,
   selectors: {
-    "&:hover:not(:disabled)": {
-      background: vars.color.secondary,
-    },
-    "&:disabled": {
-      opacity: 0.7,
-      cursor: "wait",
+    "&:hover": {
+      transform: "translateY(-2px)",
+      boxShadow: vars.shadow.md,
+      borderColor: vars.color.primary,
+      background: vars.color.surfaceHover,
     },
   },
+  "@media": { "(prefers-reduced-motion: reduce)": { transition: "none" } },
 });
 
-export const error = style({
-  color: "#d42b2b",
-  fontWeight: 500,
-  fontFamily: vars.font.base,
-  fontSize: "14px",
-  marginTop: 2,
+// Headings
+export const infoHead = style({ marginBottom: vars.space.sm });
+export const infoTitle = style({ margin: 0, fontWeight: 700, fontSize: "1.1rem" });
+export const infoSub = style({ margin: 0, color: vars.color.muted, fontSize: "0.95rem" });
+
+/* ── NOU: titlul formularului (înlocuiește style={{ marginTop: 0 }}) */
+export const formTitle = style({ marginTop: 0 });
+
+// Lists
+export const list = style({ display: "grid", gap: vars.space.sm });
+export const listItem = style({
+  display: "grid",
+  gridTemplateColumns: "auto 1fr",
+  alignItems: "center",
+  gap: vars.space.sm,
+  padding: vars.space.sm,
+  borderRadius: vars.radius.md,
+  transition: `background ${vars.motion.normal} ${vars.motion.easing}`,
+  selectors: { "&:hover": { background: vars.color.surfaceActive } },
 });
 
-export const success = style({
-  color: "#219150",
-  fontWeight: 500,
-  fontFamily: vars.font.base,
-  fontSize: "14px",
-  marginTop: 2,
+// Mini card + note
+export const miniCard = style({
+  marginTop: "auto",
+  padding: vars.space.md,
+  borderRadius: vars.radius.md,
+  border: `1px dashed ${vars.color.border}`,
+  display: "grid",
+  gridTemplateColumns: "auto 1fr",
+  gap: vars.space.sm,
+  alignItems: "center",
+  transition: `border-color ${vars.motion.normal} ${vars.motion.easing}, background ${vars.motion.normal} ${vars.motion.easing}`,
+  selectors: {
+    "&:hover": { borderColor: vars.color.primary, background: vars.color.surfaceHover },
+  },
 });
+export const note = style({
+  marginTop: vars.space.sm,
+  color: vars.color.muted,
+  fontSize: "0.92rem",
+});
+export const itemText = style({ margin: 0, lineHeight: 1.4 });
+export const actionsRow = style({
+  display: "flex",
+  gap: vars.space.sm,
+  alignItems: "center",
+  flexWrap: "wrap",
+});
+
+/* ── NOU: câmpurile formularului (înlocuiește style={{ display:'grid', gap:12 }}) */
+export const formFields = style({
+  display: "grid",
+  gap: 12,
+});
+
+/* ── NOU: câmpuri full-width (înlocuiește style={{ width:'100%' }}) */
+export const input = style({ width: "100%" });
+export const textarea = style({ width: "100%" });
+
+/* ── NOU: rând pentru Submit (înlocuiește style={{ marginTop: 12 }}) */
+export const submitRow = style({ marginTop: 12 });

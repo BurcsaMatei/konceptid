@@ -1,10 +1,20 @@
 // styles/prose.css.ts
-import { style, globalStyle } from "@vanilla-extract/css";
 
+// ==============================
+// Imports
+// ==============================
+import { globalStyle, style } from "@vanilla-extract/css";
+
+// ==============================
+// Classes
+// ==============================
 export const proseClass = style({
   // clasa părinte pentru conținut
 });
 
+// ==============================
+// Global styles
+// ==============================
 globalStyle(`${proseClass} h1, ${proseClass} h2, ${proseClass} h3, ${proseClass} h4`, {
   lineHeight: 1.2,
   marginTop: 28,

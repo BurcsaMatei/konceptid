@@ -1,70 +1,45 @@
 // lib/gallery.ts
-// Citește metadatele imaginilor dintr-un JSON ușor de editat:
-// /data/galleryCaptions.json  (alt, title, caption, description)
-//
-// Necesită în tsconfig: "resolveJsonModule": true (deja ai)
 
-import rawData from "../data/galleryCaptions.json";
+// ==============================
+// Facade public + bootstrap
+// ==============================
 
-export type GalleryJsonItem = {
-  src: string;          // ex: "/images/gallery/g-001.jpg"
-  alt: string;          // SEO + A11y (obligatoriu)
-  title?: string;       // titlul din Lightbox (implicit: alt)
-  caption?: string;     // text scurt sub imagine (UI)
-  description?: string; // descriere extinsă (A11y / Lightbox)
-};
+import { GALLERY_DATA } from "./gallery.data"; // <-- fișierul tău generat
+import { initGallery } from "./gallery.store";
+import { parseGalleryItems } from "./gallery/schema";
 
-export type GalleryItem = Required<Pick<GalleryJsonItem, "src" | "alt">> &
-  Omit<GalleryJsonItem, "src" | "alt"> & {
-    id: string; // id stabil (derivat din src)
-  };
+// Bootstrap la import (idempotent, fără dependențe de browser)
+(() => {
+  try {
+    const items = parseGalleryItems(GALLERY_DATA);
+    initGallery(items);
+  } catch (err) {
+    if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.warn("[lib/gallery] Nu am putut inițializa galeria din GALLERY_DATA:", err);
+    }
+  }
+})();
 
-// Normalizare + fallback-uri simple
-function normalizeData(data: GalleryJsonItem[]): GalleryItem[] {
-  return data.map((it, idx) => {
-    const id =
-      it.src?.replace(/^.*\//, "").replace(/\.[a-zA-Z0-9]+$/, "") ||
-      `g-${String(idx + 1).padStart(3, "0")}`;
+// ==============================
+// Re-exporturi (tipuri + store + compat)
+// ==============================
 
-    return {
-      id,
-      src: it.src,
-      alt: it.alt,
-      title: it.title ?? it.alt,
-      caption: it.caption,
-      description: it.description ?? it.caption ?? "",
-    };
-  });
-}
+// Tipuri & schema
+export type { GalleryItem, GalleryItemList } from "./gallery/schema";
+export { GalleryItemListSchema, GalleryItemSchema, parseGalleryItems } from "./gallery/schema";
 
-// Date normalizate + count
-export const GALLERY_DATA: GalleryItem[] = normalizeData(rawData as GalleryJsonItem[]);
-export const GALLERY_COUNT = GALLERY_DATA.length;
+// Store & hooks
+export {
+  galleryActions,
+  getCurrent,
+  getItems,
+  getLength,
+  getLoop,
+  initGallery,
+  useGalleryItems,
+  useGalleryStore,
+} from "./gallery.store";
 
-/**
- * Returnează primele `count` elemente (implicit toate).
- * Compatibil cu CardGrid (are src, alt, caption).
- */
-export function buildGalleryItems(count: number = GALLERY_COUNT): GalleryItem[] {
-  return GALLERY_DATA.slice(0, count);
-}
-
-/**
- * Helper pentru Lightbox: transformă items în slides (title/description incluse).
- * Poți apela direct `getGallerySlides()` în pagină dacă vrei.
- */
-export function getGallerySlides(items: GalleryItem[] = GALLERY_DATA) {
-  return items.map((i) => ({
-    src: i.src,
-    alt: i.alt,
-    title: i.title ?? i.alt,
-    description: i.description ?? i.caption ?? "",
-  }));
-}
-
-/**
- * (Opțional) caută după id (ex: "g-001")
- */
-export function findGalleryItem(id: string): GalleryItem | undefined {
-  return GALLERY_DATA.find((i) => i.id === id);
-}
+// Compat pentru cod existent (ex: ArcGallery.tsx)
+export { getItems as getGalleryItems } from "./gallery.store";

@@ -1,109 +1,96 @@
 // components/Card.tsx
-import Link from "next/link";
-import { ReactNode } from "react";
+
+// Imports
+import type { ReactNode } from "react";
+
+import {
+  actionsRow,
+  buttonReset,
+  cardRoot,
+  contentWrap,
+  excerptClass,
+  imageWrap,
+  linkReset,
+  metaRow,
+  titleClass,
+} from "../styles/card.css";
+import SmartLink from "./SmartLink";
 import Img from "./ui/Img";
 
-export type CardImage = {
-  src: string;
-  alt: string;
-  priority?: boolean;
+// Types
+type ImageProps = { src: string; alt: string; priority?: boolean };
+
+type Props = {
+  title: string;
+  image?: ImageProps;
+  /** Raportul zonei media (wrapper). Ex: "4/3" | "3/2" | "1/1" | "16/9". */
+  mediaRatio?: `${number}/${number}`;
+  excerpt?: string;
+  meta?: ReactNode;
+  actions?: ReactNode;
+  href?: string;
+  onClick?: () => void;
+  className?: string;
+  "aria-label"?: string;
 };
 
-export type CardProps = {
-  title: string | ReactNode;
-  href?: string;               // dacă e setat, tot cardul devine link
-  image?: CardImage;           // opțional
-  meta?: ReactNode;            // ex: dată, categorie
-  excerpt?: string;            // scurtă descriere
-  actions?: ReactNode;         // butoane/CTA
-  onClick?: () => void;        // alternativ la href (ex: lightbox)
-  className?: string;          // hook pt stiluri externe
-};
-
+// Component
 export default function Card({
   title,
-  href,
   image,
-  meta,
+  mediaRatio = "4/3",
   excerpt,
+  meta,
   actions,
+  href,
   onClick,
   className,
-}: CardProps) {
-  const inner = (
-    <article
-      className={className}
-      style={{
-        display: "grid",
-        gap: 12,
-        textDecoration: "none",
-        color: "inherit",
-      }}
-    >
-      {image && (
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            aspectRatio: "4 / 3",
-            borderRadius: 12,
-            overflow: "hidden",
-          }}
-        >
-          <Img
-            src={image.src}
-            alt={image.alt}
-            variant="card"
-            cover
-            priority={image.priority}
-          />
-        </div>
-      )}
+  "aria-label": ariaLabel,
+}: Props) {
+  const media = image ? (
+    <div className={imageWrap} style={{ aspectRatio: mediaRatio }}>
+      <Img
+        src={image.src}
+        alt={image.alt}
+        variant="card"
+        fit="cover" // ✅ fix tipuri: cover → fit="cover"
+        {...(image.priority ? ({ priority: true } as const) : {})}
+      />
+    </div>
+  ) : null;
 
-      <div style={{ display: "grid", gap: 6 }}>
-        <h3 style={{ margin: 0, fontSize: "1.05rem", lineHeight: 1.35 }}>{title}</h3>
-        {meta && (
-          <div style={{ fontSize: ".9rem", opacity: .8, display: "flex", gap: 8 }}>
-            {meta}
-          </div>
-        )}
-        {excerpt && (
-          <p style={{ margin: "6px 0 0", fontSize: ".95rem", opacity: .9 }}>
-            {excerpt}
-          </p>
-        )}
-        {actions && <div style={{ marginTop: 6 }}>{actions}</div>}
-      </div>
+  const content = (
+    <div className={contentWrap}>
+      <div className={titleClass}>{title}</div>
+      {excerpt ? <div className={excerptClass}>{excerpt}</div> : null}
+      {meta ? <div className={metaRow}>{meta}</div> : null}
+      {actions ? <div className={actionsRow}>{actions}</div> : null}
+    </div>
+  );
+
+  const body = (
+    <article className={`${cardRoot} ${className ?? ""}`}>
+      {media}
+      {content}
     </article>
   );
 
   if (href) {
+    // ✅ Folosim SmartLink pentru consistență (detecție intern/extern, newTab, rel, prefetch)
     return (
-      <Link href={href} aria-label={typeof title === "string" ? title : "Deschide"}>
-        {inner}
-      </Link>
+      <SmartLink href={href} className={linkReset} aria-label={ariaLabel}>
+        {body}
+      </SmartLink>
     );
   }
 
   if (onClick) {
     return (
-      <button
-        type="button"
-        onClick={onClick}
-        style={{
-          padding: 0,
-          border: "none",
-          background: "transparent",
-          textAlign: "inherit",
-          width: "100%",
-          cursor: "pointer",
-        }}
-        aria-label={typeof title === "string" ? title : "Deschide"}
-      >
-        {inner}
+      <button type="button" className={buttonReset} onClick={onClick} aria-label={ariaLabel}>
+        {body}
       </button>
     );
   }
 
-  return inner;
+  return body;
 }

@@ -1,61 +1,100 @@
-'use client';
+// components/Footer.tsx
+"use client";
 
+// ==============================
+// Imports
+// ==============================
 import Link from "next/link";
+
+import { SITE, withBase } from "../lib/config";
+import { SOCIAL as SOCIAL_DATA, type SocialKind } from "../lib/nav";
 import {
   footerClass,
-  footerLogoBoxClass,
-  footerDividerClass,
   footerCopyClass,
+  footerDividerClass,
+  footerInnerClass,
+  footerLinksRowClass,
+  footerLogoBoxClass,
+  footerLogoImg,
+  footerLogoLink,
+  footerSocialRow,
+  iconFacebook,
+  iconInstagram,
+  iconTiktok,
+  socialLink,
 } from "../styles/footer.css";
-import { useCookieConsent } from "../components/cookies/CookieProvider";
-
-// ✅ logo din src/assets (SVGR)
-import LogoMark from "../public/logo.svg"
-
-// ✅ import nou pentru linkuri externe
+import Button from "./Button";
+import { useCookieConsent } from "./cookies/CookieProvider";
 import ExternalLink from "./ExternalLink";
+import SmartLink from "./SmartLink";
+import Img from "./ui/Img";
 
-export default function Footer() {
+// ==============================
+// Constante
+// ==============================
+const iconByKind: Record<SocialKind, string> = {
+  facebook: iconFacebook,
+  instagram: iconInstagram,
+  tiktok: iconTiktok,
+};
+
+const SOCIAL = SOCIAL_DATA.filter((s) => !!s.href && /^https?:\/\//i.test(s.href)).map((s) => ({
+  href: s.href,
+  label: s.label,
+  iconClass: iconByKind[s.kind],
+}));
+
+// ==============================
+// Component
+// ==============================
+export default function Footer(): JSX.Element {
   const { openSettings } = useCookieConsent();
+  const siteName = SITE.name || "Site";
 
   return (
-    <footer className={footerClass} role="contentinfo">
-      {/* Logo centrat deasupra liniei */}
-      <div className={footerLogoBoxClass}>
-        <Link
-          href="/"
-          aria-label="KonceptID — Acasă"
-          style={{ lineHeight: 0, display: "inline-flex", alignItems: "center" }}
-        >
-          <LogoMark style={{ display: "block", height: 40, width: "auto" }} />
-        </Link>
-      </div>
+    <footer id="site-footer" className={footerClass} role="contentinfo">
+      <div className={footerInnerClass}>
+        {/* Logo */}
+        <div className={footerLogoBoxClass}>
+          <Link href={withBase("/")} className={footerLogoLink} aria-label={`${siteName} — Acasă`}>
+            <Img
+              key="footer-logo"
+              className={footerLogoImg}
+              src="/logo.svg"
+              alt={siteName}
+              width={160}
+              height={40}
+              priority={false}
+              variant="icon"
+            />
+          </Link>
+        </div>
 
-      {/* Separator sub logo */}
-      <hr className={footerDividerClass} />
+        {/* Separator sub logo */}
+        <hr className={footerDividerClass} />
 
-      {/* Text copyright */}
-      <span className={footerCopyClass}>
-        © {new Date().getFullYear()} KonceptID Base – All rights reserved.
-      </span>
+        {/* Social icons (centrate, sub separator) */}
+        <div className={footerSocialRow} aria-label="Rețele sociale">
+          {SOCIAL.map((s) => (
+            <ExternalLink key={s.label} href={s.href} className={socialLink} aria-label={s.label}>
+              <span className={s.iconClass} aria-hidden />
+            </ExternalLink>
+          ))}
+        </div>
 
-      {/* Link-uri */}
-      <div style={{ marginTop: 8, fontSize: 14, textAlign: "center" }}>
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            openSettings(); // deschide dialogul de cookies instant
-          }}
-        >
-          Setări cookie
-        </a>{" "}
-        ·{" "}
-        <Link href="/cookie-policy">
-          Politica Cookie
-        </Link>{" "}
-        ·{" "}
-        <ExternalLink href="https://anpc.ro/">ANPC</ExternalLink>
+        {/* Text copyright */}
+        <span className={footerCopyClass}>
+          © {new Date().getFullYear()} {siteName} — All rights reserved.
+        </span>
+
+        {/* Link-uri */}
+        <div className={footerLinksRowClass}>
+          <Button variant="link" onClick={openSettings} aria-label="Deschide setările de cookie">
+            Setări cookie
+          </Button>{" "}
+          · <Link href={withBase("/cookie-policy")}>Politica Cookie</Link> ·{" "}
+          <SmartLink href="https://anpc.ro/">ANPC</SmartLink>
+        </div>
       </div>
     </footer>
   );

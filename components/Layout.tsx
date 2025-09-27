@@ -1,45 +1,66 @@
 // components/Layout.tsx
-import React, { ReactNode } from "react";
-import Head from "next/head";
-import Header from "./Header";
-import Footer from "./Footer";
-import { container } from "../styles/container.css";
 
-type Props = {
+// ==============================
+// Imports
+// ==============================
+import Head from "next/head";
+import type { ReactNode } from "react";
+
+import { SITE, withBase } from "../lib/config";
+import Footer from "./Footer";
+import Header from "./Header";
+import SkipLink from "./SkipLink";
+
+// ==============================
+// Types
+// ==============================
+type LayoutProps = {
   children?: ReactNode;
-  // poți păstra "title" dacă îl folosești pentru altceva, dar nu-l mai pui în <Head>
-  title?: string;
+  /** @deprecated Containerul se aplică global din _app.tsx; acest flag este ignorat. */
+  wrap?: boolean;
 };
 
-const defaultAuthor = "KonceptID – Agenție web design și digital";
+// ==============================
+// Component
+// ==============================
+function Layout({ children }: LayoutProps) {
+  const siteName = SITE.name || "Site";
 
-const Layout = ({ children }: Props) => (
-  <div>
-    <Head>
-      {/* DOAR meta globale/tehnice — fără SEO per pagină */}
-      <meta name="author" content={defaultAuthor} />
+  return (
+    <div>
+      <Head>
+        {/* DOAR meta globale/tehnice — SEO per pagină rămâne în <Seo /> */}
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+        <meta name="author" content={siteName} />
 
-      {/* Favicon & manifest */}
-      <link rel="icon" href="/favicon.ico" />
-      <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-      <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-      <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-      <link rel="manifest" href="/site.webmanifest" />
+        {/* Favicons (manifest + apple-touch-icon sunt în _document.tsx) */}
+        <link rel="icon" href={withBase("/favicon.png")} />
+        <link rel="icon" type="image/png" sizes="32x32" href={withBase("/favicon-32x32.png")} />
+        <link rel="icon" type="image/png" sizes="16x16" href={withBase("/favicon-16x16.png")} />
 
-      {/* Theme color */}
-      <meta name="theme-color" content="#ffffff" />
+        {/* 🔗 RSS feed discovery */}
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title={`${siteName} — Blog`}
+          href={withBase("/feed.xml")}
+        />
+      </Head>
 
-      {/* Bazice */}
-      <meta charSet="utf-8" />
-      <meta name="viewport" content="initial-scale=1.0, width=device-width" />
-    </Head>
+      {/* A11y: primul element focusabil pentru tastatură */}
+      <SkipLink />
 
-    <Header />
-    <main>
-      <div className={container}>{children}</div>
-    </main>
-    <Footer />
-  </div>
-);
+      <Header />
+
+      {/* A11y target pentru SkipLink */}
+      <main id="main" tabIndex={-1}>
+        {children}
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
 
 export default Layout;

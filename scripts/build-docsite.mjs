@@ -8,8 +8,10 @@ function mdToHtml(md) {
     .replace(/^# (.+)$/gm, "<h1>$1</h1>")
     .replace(/^## (.+)$/gm, "<h2>$1</h2>")
     .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-    .replace(/```(\w+)?\n([\s\S]*?)```/gm, (m, lang, code) =>
-      `<pre><code class="language-${lang || "text"}">${code.replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</code></pre>`
+    .replace(
+      /```(\w+)?\n([\s\S]*?)```/gm,
+      (m, lang, code) =>
+        `<pre><code class="language-${lang || "text"}">${code.replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[ch])}</code></pre>`,
     )
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\n\n/g, "</p><p>")
@@ -19,10 +21,7 @@ function mdToHtml(md) {
 }
 
 const ROOT = process.cwd();
-const SRC_DIRS = [
-  path.join(ROOT, "docs", "by-file"),
-  path.join(ROOT, "docs", "by-component"),
-];
+const SRC_DIRS = [path.join(ROOT, "docs", "by-file"), path.join(ROOT, "docs", "by-component")];
 const OUT_DIR = path.join(ROOT, "docs", "site");
 
 function layout(title, body) {
@@ -74,4 +73,7 @@ async function run() {
   console.log("\n📚 Site generat: docs/site/index.html");
 }
 
-run().catch(e => { console.error(e); process.exit(1); });
+run().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

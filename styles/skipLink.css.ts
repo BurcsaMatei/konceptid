@@ -1,35 +1,36 @@
 // styles/skipLink.css.ts
-import { style } from "@vanilla-extract/css";
-import { vars } from "./tokens.css";
 
-export const skipLinkClass = style({
+// ==============================
+// Imports
+// ==============================
+import { style } from "@vanilla-extract/css";
+
+import { vars } from "./theme.css";
+
+// ==============================
+// Classes
+// ==============================
+export const skipLink = style({
   position: "fixed",
-  top: 12,
-  left: 12,
-  zIndex: 10000,
-  padding: "10px 14px",
-  borderRadius: 8,
-  background: vars.color.primary, // culoare brand
-  color: "#fff",
+  top: "calc(env(safe-area-inset-top, 0px) + 8px)",
+  left: "calc(env(safe-area-inset-left, 0px) + 8px)",
+  zIndex: 1001, // peste header/overlays uzuale
+  background: vars.color.surface,
+  color: vars.color.text,
+  padding: "10px 12px",
+  borderRadius: 10,
   textDecoration: "none",
   lineHeight: 1.2,
   fontWeight: 600,
+  boxShadow: vars.shadow.sm,
   transform: "translateY(-150%)",
-  boxShadow: "0 10px 30px rgba(0,0,0,.18)",
-  transition: "transform .15s ease, box-shadow .2s ease",
+  transition: `transform ${vars.motion.fast} ${vars.motion.easing}`,
   selectors: {
-    "&:hover": {
-      boxShadow: "0 12px 34px rgba(0,0,0,.22)",
-    },
+    // Afișare doar la focus de tastatură
     "&:focus-visible": {
       transform: "translateY(0)",
-      outline: "3px solid #2563eb",
+      outline: `2px solid ${vars.color.focus}`,
       outlineOffset: 2,
-    },
-  },
-  "@media": {
-    "(prefers-reduced-motion: reduce)": {
-      transition: "none",
     },
   },
 });
