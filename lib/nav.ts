@@ -36,11 +36,10 @@ export type NavGroup = {
 // Navigation (principal) — readonly
 // ==============================
 export const NAV = [
-  { href: "/", label: "Acasă" },
-  { href: "/galerie", label: "Galerie" },
-  { href: "/services", label: "Servicii" },
-  { href: "/blog", label: "Blog" },
-  { href: "/contact", label: "Contact" },
+  { href: "/concept", label: "Concept" },
+  { href: "/portfolio", label: "Portfolio" },
+  { href: "/marketplace", label: "Marketplace" },
+  { href: "/auctions", label: "Auctions" },
 ] as const satisfies readonly NavItem[];
 
 // ==============================
