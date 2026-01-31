@@ -41,7 +41,6 @@ export const stage = style({
   touchAction: "none",
   overscrollBehavior: "none",
 
-  // blueprint background: dots + fine grid
   backgroundImage: `
     radial-gradient(circle at 1px 1px, rgba(127,127,127,0.22) 1px, transparent 0),
     linear-gradient(rgba(127,127,127,0.08) 1px, transparent 1px),
@@ -62,6 +61,7 @@ export const layer = style({
   willChange: "transform",
 });
 
+// ---------- Hint ----------
 export const hint = style({
   position: "absolute",
   top: vars.space.md,
@@ -80,7 +80,7 @@ export const hint = style({
 
 export const hintTitle = style({
   margin: 0,
-  fontWeight: 800,
+  fontWeight: 900,
   fontSize: vars.typography.size.sm,
 });
 
@@ -89,6 +89,79 @@ export const hintText = style({
   opacity: 0.78,
 });
 
+// ---------- Minimap ----------
+export const minimap = style({
+  position: "absolute",
+  top: vars.space.md,
+  right: vars.space.md,
+  zIndex: vars.z.overlay,
+  width: "clamp(180px, 18vw, 240px)",
+  height: "clamp(128px, 14vw, 172px)",
+  borderRadius: vars.radius.lg,
+  border: `1px solid ${vars.color.border}`,
+  background: vars.color.surface,
+  boxShadow: vars.shadow.sm,
+  overflow: "hidden",
+});
+
+export const minimapGrid = style({
+  position: "absolute",
+  inset: 0,
+  backgroundImage: `
+    radial-gradient(circle at 1px 1px, rgba(127,127,127,0.20) 1px, transparent 0),
+    linear-gradient(rgba(127,127,127,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(127,127,127,0.06) 1px, transparent 1px)
+  `,
+  backgroundSize: "16px 16px, 64px 64px, 64px 64px",
+  opacity: 0.9,
+});
+
+export const minimapPois = style({
+  position: "absolute",
+  inset: 0,
+});
+
+export const minimapPoi = style({
+  position: "absolute",
+  left: "var(--mm-x)",
+  top: "var(--mm-y)",
+  transform: "translate(-50%, -50%)",
+  width: 22,
+  height: 22,
+  borderRadius: 999,
+  border: `1px solid ${vars.color.border}`,
+  background: "rgba(127,127,127,0.10)",
+  display: "grid",
+  placeItems: "center",
+  cursor: "pointer",
+  selectors: {
+    "&:hover": { background: "rgba(127,127,127,0.16)" },
+    "&:active": { background: "rgba(127,127,127,0.20)" },
+    "&:focus-visible": { outline: `2px solid ${vars.color.focus}`, outlineOffset: 2 },
+  },
+});
+
+export const minimapPoiDot = style({
+  width: 8,
+  height: 8,
+  borderRadius: 999,
+  background: "var(--poi-accent)",
+});
+
+export const minimapViewport = style({
+  position: "absolute",
+  left: "var(--vp-x)",
+  top: "var(--vp-y)",
+  width: "var(--vp-w)",
+  height: "var(--vp-h)",
+  borderRadius: 10,
+  border: `2px solid ${vars.color.primary}`,
+  boxShadow: "0 0 0 999px rgba(0,0,0,0.02) inset",
+  pointerEvents: "none",
+  opacity: 0.9,
+});
+
+// ---------- HUD ----------
 export const hud = style({
   position: "absolute",
   left: 0,
@@ -100,9 +173,7 @@ export const hud = style({
 });
 
 export const hudInner = style({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
+  display: "grid",
   gap: vars.space.md,
   padding: `${vars.space.sm} ${vars.space.md}`,
   maxWidth: vars.layout.max.lg,
@@ -110,6 +181,8 @@ export const hudInner = style({
 
   "@media": {
     [mq.md]: {
+      gridTemplateColumns: "auto 1fr auto",
+      alignItems: "center",
       padding: `${vars.space.md} ${vars.space.lg}`,
     },
   },
@@ -139,7 +212,7 @@ export const kbd = style({
   borderRadius: vars.radius.sm,
   border: `1px solid ${vars.color.border}`,
   background: "rgba(127,127,127,0.08)",
-  fontWeight: 800,
+  fontWeight: 900,
   letterSpacing: "0.02em",
 });
 
@@ -156,7 +229,7 @@ export const hudLink = style({
   border: `1px solid ${vars.color.border}`,
   borderRadius: 999,
   padding: "8px 12px",
-  fontWeight: 800,
+  fontWeight: 900,
   lineHeight: 1,
   transition: `transform ${vars.motion.fast} ${vars.motion.easing.standard}, background-color ${vars.motion.fast} ${vars.motion.easing.standard}`,
   selectors: {
@@ -177,7 +250,7 @@ export const hudBtn = style({
   padding: "8px 12px",
   background: "transparent",
   color: "inherit",
-  fontWeight: 800,
+  fontWeight: 900,
   lineHeight: 1,
   cursor: "pointer",
   transition: `transform ${vars.motion.fast} ${vars.motion.easing.standard}, background-color ${vars.motion.fast} ${vars.motion.easing.standard}`,
@@ -197,15 +270,129 @@ export const hudBtn = style({
   },
 });
 
+// ---------- HUD Project Card ----------
+export const hudCard = style({
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: vars.radius.lg,
+  background: "rgba(127,127,127,0.06)",
+  padding: vars.space.sm,
+  boxShadow: vars.shadow.sm,
+  minWidth: 0,
+
+  "@media": {
+    [mq.md]: {
+      padding: vars.space.md,
+    },
+  },
+});
+
+export const hudCardEmpty = style({
+  fontSize: vars.typography.size.sm,
+  opacity: 0.78,
+  lineHeight: vars.typography.leading.normal,
+});
+
+export const hudCardTop = style({
+  display: "flex",
+  alignItems: "center",
+  gap: vars.space.sm,
+  minWidth: 0,
+});
+
+export const hudLogo = style({
+  width: 34,
+  height: 34,
+  borderRadius: 999,
+  border: `1px solid ${vars.color.border}`,
+  background: vars.color.surface,
+  display: "grid",
+  placeItems: "center",
+});
+
+export const hudCardMeta = style({
+  display: "grid",
+  gap: 2,
+  minWidth: 0,
+});
+
+export const hudCardTitle = style({
+  fontWeight: 900,
+  lineHeight: vars.typography.leading.tight,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+export const hudCardSub = style({
+  fontSize: vars.typography.size.xs,
+  opacity: 0.78,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+export const hudCardActions = style({
+  marginTop: vars.space.sm,
+  display: "flex",
+  gap: vars.space.sm,
+  flexWrap: "wrap",
+});
+
+export const hudActionBtn = style({
+  borderRadius: 999,
+  border: `1px solid ${vars.color.border}`,
+  padding: "8px 12px",
+  fontWeight: 900,
+  lineHeight: 1,
+  background: "transparent",
+  color: "inherit",
+  cursor: "pointer",
+  selectors: {
+    "&:hover": { background: "rgba(127,127,127,0.10)" },
+    "&:active": { background: "rgba(127,127,127,0.14)" },
+    "&:focus-visible": { outline: `2px solid ${vars.color.focus}`, outlineOffset: 2 },
+  },
+});
+
+export const hudActionLink = style({
+  textDecoration: "none",
+  borderRadius: 999,
+  border: `1px solid ${vars.color.border}`,
+  padding: "8px 12px",
+  fontWeight: 900,
+  lineHeight: 1,
+  selectors: {
+    "&:hover": { background: "rgba(127,127,127,0.10)" },
+    "&:active": { background: "rgba(127,127,127,0.14)" },
+  },
+});
+
+// ---------- Badges ----------
+export const badges = style({
+  marginTop: vars.space.sm,
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+});
+
+export const badge = style({
+  borderRadius: 999,
+  border: `1px solid ${vars.color.border}`,
+  padding: "4px 10px",
+  fontSize: vars.typography.size.xs,
+  fontWeight: 900,
+  letterSpacing: "0.01em",
+  background: vars.color.surface,
+});
+
 // ---------- POI ----------
 export const poi = style({
   position: "absolute",
   transform: "translate3d(var(--poi-x), var(--poi-y), 0)",
-  width: 140,
-  height: 120,
+  width: 150,
+  height: 128,
   display: "grid",
   placeItems: "end center",
-  cursor: "pointer",
 });
 
 export const poiHit = style({
@@ -236,22 +423,17 @@ export const poiBody = style({
   left: 14,
   right: 14,
   bottom: 12,
-  height: 54,
+  height: 56,
   borderRadius: vars.radius.md,
   border: `1px solid ${vars.color.border}`,
-  background: "rgba(255,255,255,0.4)",
-  selectors: {
-    [`${poiHit} &`]: {
-      background: vars.color.cardBg,
-    },
-  },
+  background: vars.color.cardBg,
 });
 
 export const poiRoof = style({
   position: "absolute",
   left: 22,
   right: 22,
-  bottom: 58,
+  bottom: 60,
   height: 20,
   borderRadius: vars.radius.md,
   border: `1px solid ${vars.color.border}`,
@@ -281,6 +463,18 @@ export const poiFlagDot = style({
   background: "var(--poi-accent)",
 });
 
+export const poiFlagLogo = style({
+  width: 22,
+  height: 22,
+  display: "grid",
+  placeItems: "center",
+});
+
+export const poiFlagText = style({
+  lineHeight: 1,
+  transform: "translateY(0.5px)",
+});
+
 export const poiMeta = style({
   position: "absolute",
   left: 12,
@@ -304,6 +498,12 @@ export const poiTagline = style({
   lineHeight: vars.typography.leading.normal,
 });
 
+export const poiFill = style({
+  position: "absolute",
+  inset: 0,
+  background: "var(--poi-fill)",
+});
+
 // kind variants (via CSS vars)
 export const poiKind = {
   shop: style({
@@ -316,12 +516,6 @@ export const poiKind = {
     vars: { "--poi-accent": poiKindVars.ngo.accent, "--poi-fill": poiKindVars.ngo.fill },
   }),
 } satisfies Record<Kind, string>;
-
-export const poiFill = style({
-  position: "absolute",
-  inset: 0,
-  background: "var(--poi-fill)",
-});
 
 // ---------- Modal ----------
 export const modalOverlay = style({
@@ -344,7 +538,7 @@ export const modalBackdrop = style({
 });
 
 export const modal = style({
-  width: "min(560px, 92vw)",
+  width: "min(620px, 94vw)",
   borderRadius: vars.radius.xl,
   border: `1px solid ${vars.color.border}`,
   background: vars.color.surface,
@@ -373,6 +567,28 @@ export const modalClose = style({
   },
 });
 
+export const modalHeader = style({
+  display: "flex",
+  alignItems: "center",
+  gap: vars.space.md,
+});
+
+export const modalLogo = style({
+  width: 54,
+  height: 54,
+  borderRadius: 999,
+  border: `1px solid ${vars.color.border}`,
+  background: vars.color.surface,
+  display: "grid",
+  placeItems: "center",
+});
+
+export const modalHeaderMeta = style({
+  display: "grid",
+  gap: 4,
+  minWidth: 0,
+});
+
 export const modalTitle = style({
   margin: 0,
   fontSize: vars.typography.size.xl,
@@ -380,10 +596,16 @@ export const modalTitle = style({
   lineHeight: vars.typography.leading.tight,
 });
 
+export const modalSub = style({
+  fontSize: vars.typography.size.sm,
+  opacity: 0.78,
+});
+
 export const modalText = style({
-  marginTop: vars.space.sm,
+  marginTop: vars.space.md,
   marginBottom: 0,
-  opacity: 0.82,
+  opacity: 0.86,
+  lineHeight: vars.typography.leading.relaxed,
 });
 
 export const modalActions = style({
@@ -403,5 +625,21 @@ export const modalAction = style({
   selectors: {
     "&:hover": { background: "rgba(127,127,127,0.10)" },
     "&:active": { background: "rgba(127,127,127,0.14)" },
+  },
+});
+
+export const modalActionBtn = style({
+  borderRadius: 999,
+  border: `1px solid ${vars.color.border}`,
+  padding: "10px 14px",
+  fontWeight: 900,
+  lineHeight: 1,
+  background: "transparent",
+  color: "inherit",
+  cursor: "pointer",
+  selectors: {
+    "&:hover": { background: "rgba(127,127,127,0.10)" },
+    "&:active": { background: "rgba(127,127,127,0.14)" },
+    "&:focus-visible": { outline: `2px solid ${vars.color.focus}`, outlineOffset: 2 },
   },
 });
