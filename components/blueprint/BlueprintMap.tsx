@@ -3,10 +3,13 @@
 // ==============================
 // Imports
 // ==============================
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { BlueprintPoi } from "../../lib/blueprint.data";
 import { BLUEPRINT_POIS } from "../../lib/blueprint.data";
+import type { BlueprintDistrict } from "../../lib/blueprint.districts";
+import { BLUEPRINT_DISTRICTS } from "../../lib/blueprint.districts";
+import * as hudSp from "../../styles/blueprint/blueprintDistrictHud.css";
 import * as sp from "../../styles/blueprint/blueprintMap.css";
 import SmartLink from "../SmartLink";
 
@@ -43,6 +46,34 @@ function isEditableTarget(t: EventTarget | null): boolean {
   return t.isContentEditable;
 }
 
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(Boolean(mq.matches));
+
+    update();
+
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", update);
+      return () => mq.removeEventListener("change", update);
+    }
+
+    // fallback Safari old
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+
+  return reduced;
+}
+
 // ==============================
 // Component
 // ==============================
@@ -54,8 +85,15 @@ export default function BlueprintMap() {
   const [isDragging, setIsDragging] = useState(false);
   const [activePoi, setActivePoi] = useState<ActivePoi>(null);
 
+  const reduceMotion = usePrefersReducedMotion();
+
   const zoomRef = useRef(zoom);
   const offsetRef = useRef(offset);
+
+  // Focus mgmt
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
+  const poiBtnRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
+  const lastPoiIdRef = useRef<string | null>(null);
 
   const dragRef = useRef<{
     active: boolean;
@@ -77,6 +115,8 @@ export default function BlueprintMap() {
 
   const hasCenteredRef = useRef(false);
 
+  const cameraAnimRef = useRef<{ raf: number; active: boolean } | null>(null);
+
   useEffect(() => {
     zoomRef.current = zoom;
   }, [zoom]);
@@ -84,6 +124,99 @@ export default function BlueprintMap() {
   useEffect(() => {
     offsetRef.current = offset;
   }, [offset]);
+
+  const cancelCameraAnim = useCallback(() => {
+    const a = cameraAnimRef.current;
+    if (!a || !a.active) return;
+    window.cancelAnimationFrame(a.raf);
+    a.active = false;
+  }, []);
+
+  const animateCamera = useCallback(
+    (nextOffset: Point, nextZoom: number, durationMs = 650) => {
+      const el = stageRef.current;
+      if (!el) return;
+
+      // Reduced motion => instant
+      if (reduceMotion || durationMs <= 10) {
+        cancelCameraAnim();
+        setZoom(nextZoom);
+        setOffset(nextOffset);
+        return;
+      }
+
+      cancelCameraAnim();
+
+      const startZoom = zoomRef.current;
+      const startOffset = offsetRef.current;
+
+      const start = performance.now();
+      const a = { raf: 0, active: true };
+      cameraAnimRef.current = a;
+
+      const tick = (now: number) => {
+        const t = clamp((now - start) / durationMs, 0, 1);
+        const k = easeInOutCubic(t);
+
+        const z = startZoom + (nextZoom - startZoom) * k;
+        const ox = startOffset.x + (nextOffset.x - startOffset.x) * k;
+        const oy = startOffset.y + (nextOffset.y - startOffset.y) * k;
+
+        setZoom(z);
+        setOffset({ x: ox, y: oy });
+
+        if (t < 1) {
+          a.raf = window.requestAnimationFrame(tick);
+        } else {
+          a.active = false;
+        }
+      };
+
+      a.raf = window.requestAnimationFrame(tick);
+    },
+    [cancelCameraAnim, reduceMotion],
+  );
+
+  const focusDistrict = useCallback(
+    (d: BlueprintDistrict) => {
+      const el = stageRef.current;
+      if (!el) return;
+
+      const rect = el.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+
+      const targetZoom = clamp(d.zoom, 0.65, 1.6);
+      const targetOffset = {
+        x: cx - d.x * targetZoom,
+        y: cy - d.y * targetZoom,
+      };
+
+      animateCamera(targetOffset, targetZoom, reduceMotion ? 0 : 700);
+    },
+    [animateCamera, reduceMotion],
+  );
+
+  const restorePoiFocus = useCallback(() => {
+    const id = lastPoiIdRef.current;
+    if (!id) return;
+    const btn = poiBtnRefs.current.get(id);
+    btn?.focus();
+  }, []);
+
+  // Focus: on open -> close button
+  useEffect(() => {
+    if (!activePoi) return;
+    const raf = window.requestAnimationFrame(() => closeBtnRef.current?.focus());
+    return () => window.cancelAnimationFrame(raf);
+  }, [activePoi]);
+
+  // Focus: on close -> return to last POI
+  useEffect(() => {
+    if (activePoi) return;
+    const raf = window.requestAnimationFrame(() => restorePoiFocus());
+    return () => window.cancelAnimationFrame(raf);
+  }, [activePoi, restorePoiFocus]);
 
   // center view once (client only)
   useEffect(() => {
@@ -154,6 +287,9 @@ export default function BlueprintMap() {
         keys.w || keys.a || keys.s || keys.d || keys.up || keys.left || keys.down || keys.right;
 
       if (any) {
+        // dacă userul mișcă, anulăm easing-ul ca să nu “lupte”
+        cancelCameraAnim();
+
         const speed = 520; // px/sec (screen space)
         const z = zoomRef.current || 1;
         const s = speed * dt;
@@ -174,7 +310,7 @@ export default function BlueprintMap() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, []);
+  }, [cancelCameraAnim]);
 
   // Pointer + wheel listeners (imperativ) => fără warnings jsx-a11y
   useEffect(() => {
@@ -183,6 +319,9 @@ export default function BlueprintMap() {
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
+
+      // dacă userul interacționează, anulăm easing-ul ca să nu se “bată”
+      cancelCameraAnim();
 
       try {
         el.setPointerCapture(e.pointerId);
@@ -219,6 +358,9 @@ export default function BlueprintMap() {
     };
 
     const onWheel = (e: WheelEvent) => {
+      // anulăm easing-ul înainte de zoom manual
+      cancelCameraAnim();
+
       e.preventDefault();
 
       const rect = el.getBoundingClientRect();
@@ -256,7 +398,7 @@ export default function BlueprintMap() {
       el.removeEventListener("pointercancel", onPointerUp);
       el.removeEventListener("wheel", onWheel as EventListener);
     };
-  }, []);
+  }, [cancelCameraAnim]);
 
   const layerTransform = useMemo(() => {
     return `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})`;
@@ -266,12 +408,17 @@ export default function BlueprintMap() {
     const el = stageRef.current;
     if (!el) return;
 
+    cancelCameraAnim();
+
     const rect = el.getBoundingClientRect();
     setZoom(1);
     setOffset({ x: rect.width / 2, y: rect.height / 2 });
   };
 
-  const openPoi = (poi: BlueprintPoi) => setActivePoi(poi);
+  const openPoi = (poi: BlueprintPoi) => {
+    lastPoiIdRef.current = poi.id;
+    setActivePoi(poi);
+  };
   const closePoi = () => setActivePoi(null);
 
   const renderPoi = (poi: BlueprintPoi) => {
@@ -285,6 +432,9 @@ export default function BlueprintMap() {
     return (
       <div key={poi.id} className={`${sp.poi} ${kindClass}`} style={vars}>
         <button
+          ref={(node) => {
+            poiBtnRefs.current.set(poi.id, node);
+          }}
           type="button"
           className={sp.poiHit}
           onClick={() => openPoi(poi)}
@@ -307,6 +457,9 @@ export default function BlueprintMap() {
       </div>
     );
   };
+
+  const modalTitleId = activePoi ? `poi-title-${activePoi.id}` : undefined;
+  const modalDescId = activePoi ? `poi-desc-${activePoi.id}` : undefined;
 
   return (
     <div className={sp.root}>
@@ -341,18 +494,22 @@ export default function BlueprintMap() {
             </div>
 
             <div className={sp.hudRight}>
-              <SmartLink className={sp.hudLink} href="/concept">
-                Concept
-              </SmartLink>
-              <SmartLink className={sp.hudLink} href="/portfolio">
-                Portfolio
-              </SmartLink>
-              <SmartLink className={sp.hudLink} href="/marketplace">
-                Marketplace
-              </SmartLink>
-              <SmartLink className={sp.hudLink} href="/auctions">
-                Auctions
-              </SmartLink>
+              {BLUEPRINT_DISTRICTS.map((d) => (
+                <div key={d.id} className={hudSp.districtGroup}>
+                  <button
+                    type="button"
+                    className={hudSp.teleportButton}
+                    onClick={() => focusDistrict(d)}
+                    aria-label={`Teleport către ${d.label}`}
+                  >
+                    {d.label}
+                  </button>
+
+                  <SmartLink className={hudSp.openPageLink} href={d.pageHref}>
+                    Open district page
+                  </SmartLink>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -362,7 +519,8 @@ export default function BlueprintMap() {
             className={sp.modalOverlay}
             role="dialog"
             aria-modal="true"
-            aria-label={`Detalii ${activePoi.title}`}
+            aria-labelledby={modalTitleId}
+            aria-describedby={modalDescId}
           >
             <button
               type="button"
@@ -372,6 +530,7 @@ export default function BlueprintMap() {
             />
             <div className={sp.modal}>
               <button
+                ref={closeBtnRef}
                 type="button"
                 className={sp.modalClose}
                 onClick={closePoi}
@@ -380,8 +539,12 @@ export default function BlueprintMap() {
                 ×
               </button>
 
-              <h2 className={sp.modalTitle}>{activePoi.title}</h2>
-              <p className={sp.modalText}>{activePoi.tagline}</p>
+              <h2 id={modalTitleId} className={sp.modalTitle}>
+                {activePoi.title}
+              </h2>
+              <p id={modalDescId} className={sp.modalText}>
+                {activePoi.tagline}
+              </p>
 
               <div className={sp.modalActions}>
                 <SmartLink className={sp.modalAction} href={activePoi.href} newTab>
