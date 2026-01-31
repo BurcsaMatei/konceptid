@@ -1,14 +1,16 @@
-// pages/portfolio.tsx
+// pages/portfolio/index.tsx
 
 // ==============================
 // Imports
 // ==============================
 import type { NextPage } from "next";
 
-import Seo from "../components/Seo";
-import Separator from "../components/Separator";
-import type { Json } from "../interfaces";
-import { absoluteUrl, seoDefaults } from "../lib/config";
+import Seo from "../../components/Seo";
+import Separator from "../../components/Separator";
+import SmartLink from "../../components/SmartLink";
+import type { Json } from "../../interfaces";
+import { BLUEPRINT_POIS } from "../../lib/blueprint.data";
+import { absoluteUrl, seoDefaults } from "../../lib/config";
 
 // ==============================
 // Constante
@@ -25,7 +27,7 @@ const breadcrumbList = {
 // ==============================
 // Component
 // ==============================
-const PortfolioPage: NextPage = () => {
+const PortfolioIndex: NextPage = () => {
   return (
     <>
       <Seo
@@ -39,7 +41,15 @@ const PortfolioPage: NextPage = () => {
       <section className="section">
         <div className="container">
           <h1>Portfolio</h1>
-          <p>Placeholder. Aici intră proiectele (POI-uri) și list view.</p>
+          <p>Case studies (MVP) — intră pe un proiect:</p>
+
+          <ul>
+            {BLUEPRINT_POIS.map((p) => (
+              <li key={p.id}>
+                <SmartLink href={p.caseHref}>{p.title}</SmartLink> — {p.domain}
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -48,7 +58,4 @@ const PortfolioPage: NextPage = () => {
   );
 };
 
-// ==============================
-// Exporturi
-// ==============================
-export default PortfolioPage;
+export default PortfolioIndex;

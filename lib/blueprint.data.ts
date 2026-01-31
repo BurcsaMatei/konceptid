@@ -5,49 +5,119 @@
 // ==============================
 export type BlueprintPoiKind = "shop" | "venue" | "ngo";
 
+export type BlueprintBadge = "Next.js" | "TypeScript" | "Vanilla Extract" | "SEO";
+
 export type BlueprintPoi = {
-  id: string;
-  title: string;
-  tagline: string;
-  href: string; // extern
+  id: "cmf" | "zephira" | "fraternitacss";
   kind: BlueprintPoiKind;
-  shortLabel: string; // text scurt pentru steag (ex. CMF)
-  x: number; // world coords (px)
-  y: number; // world coords (px)
+
+  // Map placement (world coords)
+  x: number;
+  y: number;
+
+  // Identity
+  title: string;
+  shortLabel: string;
+
+  // Brand / links
+  domain: string;
+  siteUrl: string;
+  caseSlug: string;
+  caseHref: string;
+
+  // Visuals
+  logoSrc: string;
+
+  // Copy
+  tagline: string;
+  location: string;
+  address: string;
+
+  // Tech
+  badges: readonly BlueprintBadge[];
 };
 
 // ==============================
-// Data
+// Constante
 // ==============================
+const DEFAULT_BADGES = [
+  "Next.js",
+  "TypeScript",
+  "Vanilla Extract",
+  "SEO",
+] as const satisfies readonly BlueprintBadge[];
+
+// NOTE: coordonatele sunt MVP (pot fi ajustate ulterior fără să schimbăm API-ul)
 export const BLUEPRINT_POIS = [
   {
-    id: "cmf-baiamare",
-    title: "CMF Baia Mare",
-    tagline: "Construcții & monumente funerare",
-    href: "https://cmfbaiamare.ro/",
+    id: "cmf",
     kind: "shop",
-    shortLabel: "CMF",
     x: -420,
-    y: -120,
+    y: 220,
+
+    title: "CMF Baia Mare",
+    shortLabel: "CMF",
+
+    domain: "cmfbaiamare.ro",
+    siteUrl: "https://cmfbaiamare.ro/",
+    caseSlug: "cmf-baia-mare",
+    caseHref: "/portfolio/cmf-baia-mare",
+
+    logoSrc: "/images/blueprint/logo-cmf.svg",
+
+    tagline:
+      "Monumente funerare premium, executate curat și rapid, cu accent pe detalii și încredere.",
+    location: "Baia Mare, Maramureș, România",
+    address: "Str. Dragoș Vodă 7, Baia Mare",
+
+    badges: DEFAULT_BADGES,
   },
+
   {
-    id: "zephira-events",
-    title: "Zephira Events",
-    tagline: "Sală de evenimente",
-    href: "https://zephiraevents.ro/",
+    id: "zephira",
     kind: "venue",
-    shortLabel: "ZEPH",
-    x: 220,
-    y: -220,
+    x: 520,
+    y: 90,
+
+    title: "Zephira Events",
+    shortLabel: "ZEPHIRA",
+
+    domain: "zephiraevents.ro",
+    siteUrl: "https://zephiraevents.ro/",
+    caseSlug: "zephira-events",
+    caseHref: "/portfolio/zephira-events",
+
+    logoSrc: "/images/blueprint/logo-zephira.svg",
+
+    tagline:
+      "Sală de evenimente elegantă, cu pachete clare și organizare cap-coadă — fără stres, fără compromis.",
+    location: "Focșani, Vrancea, România",
+    address: "Str. Câmpineanca nr. 498, Focșani",
+
+    badges: DEFAULT_BADGES,
   },
+
   {
     id: "fraternitacss",
-    title: "FraternitaCSS",
-    tagline: "Asociație umanitară",
-    href: "https://fraternitacss.com/",
     kind: "ngo",
-    shortLabel: "FCS",
-    x: 120,
-    y: 220,
+    x: 140,
+    y: 520,
+
+    title: "FraternitaCSS",
+    shortLabel: "FRAT",
+
+    domain: "fraternitacss.com",
+    siteUrl: "https://fraternitacss.com/",
+    caseSlug: "fraternitacss",
+    caseHref: "/portfolio/fraternitacss",
+
+    logoSrc: "/images/blueprint/logo-css.svg",
+
+    tagline:
+      "Asociație umanitară cu impact real: ajutor concret pentru oameni reali, comunicat simplu și transparent.",
+    location: "Baia Mare, Maramureș, România",
+    address: "Splaiul Republicii 2, Baia Mare",
+
+    badges: DEFAULT_BADGES,
   },
 ] as const satisfies readonly BlueprintPoi[];
