@@ -256,7 +256,20 @@ export const SITEMAPS = [
   "/sitemap-gallery.xml", // galerie
 ] as const;
 
-export const STATIC_ROUTES = ["/", "/services", "/contact", "/blog"] as const;
+// ✅ include district pages + pagini top-level existente
+export const STATIC_ROUTES = [
+  "/",
+  "/concept",
+  "/portfolio",
+  "/marketplace",
+  "/auctions",
+  "/services",
+  "/contact",
+  "/galerie",
+  "/blog",
+  "/cookie-policy",
+] as const;
+
 export const GALLERY_ATTACH_LIMIT = 100 as const;
 
 // ==============================

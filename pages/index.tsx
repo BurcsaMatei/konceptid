@@ -7,7 +7,6 @@ import type { NextPage } from "next";
 
 import BlueprintMap from "../components/blueprint/BlueprintMap";
 import Seo from "../components/Seo";
-import Separator from "../components/Separator";
 import type { Json } from "../interfaces";
 import { absoluteUrl, seoDefaults } from "../lib/config";
 
@@ -37,8 +36,6 @@ const Home: NextPage = () => {
       />
 
       <BlueprintMap />
-
-      <Separator />
     </>
   );
 };

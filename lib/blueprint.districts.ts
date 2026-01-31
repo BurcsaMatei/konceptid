@@ -3,7 +3,7 @@
 // ==============================
 // Types
 // ==============================
-export type BlueprintDistrictId = "concept" | "portfolio" | "marketplace" | "auctions";
+export type BlueprintDistrictId = "concept" | "portfolio" | "marketplace" | "auctions" | "blog";
 
 export type BlueprintDistrict = {
   id: BlueprintDistrictId;
@@ -30,6 +30,9 @@ export const BLUEPRINT_DISTRICTS: readonly BlueprintDistrict[] = [
     zoom: 1.15,
   },
   { id: "auctions", label: "Auctions", pageHref: "/auctions", x: 520, y: 360, zoom: 1.15 },
+
+  // Blog HUB (meniu + minimap)
+  { id: "blog", label: "Blog", pageHref: "/blog", x: 0, y: -520, zoom: 1.15 },
 ] as const;
 
 // ==============================

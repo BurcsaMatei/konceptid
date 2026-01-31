@@ -12,6 +12,7 @@ import { BLUEPRINT_DISTRICTS } from "../../lib/blueprint.districts";
 import * as hudSp from "../../styles/blueprint/blueprintDistrictHud.css";
 import * as sp from "../../styles/blueprint/blueprintMap.css";
 import SmartLink from "../SmartLink";
+import BlueprintMiniMap from "./BlueprintMiniMap";
 
 // ==============================
 // Types
@@ -32,6 +33,11 @@ type KeyState = {
 
 type ActivePoi = BlueprintPoi | null;
 
+type StageSize = {
+  width: number;
+  height: number;
+};
+
 // ==============================
 // Utils
 // ==============================
@@ -44,6 +50,15 @@ function isEditableTarget(t: EventTarget | null): boolean {
   const tag = t.tagName.toLowerCase();
   if (tag === "input" || tag === "textarea" || tag === "select") return true;
   return t.isContentEditable;
+}
+
+function isNoDragTarget(t: EventTarget | null): boolean {
+  if (!t || !(t instanceof Element)) return false;
+
+  if (t.closest('[data-no-drag="true"]')) return true;
+
+  const interactive = t.closest("a,button,input,textarea,select,[role='button'],[role='link']");
+  return Boolean(interactive);
 }
 
 function easeInOutCubic(t: number): number {
@@ -66,7 +81,6 @@ function usePrefersReducedMotion(): boolean {
       return () => mq.removeEventListener("change", update);
     }
 
-    // fallback Safari old
     mq.addListener(update);
     return () => mq.removeListener(update);
   }, []);
@@ -84,6 +98,10 @@ export default function BlueprintMap() {
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [activePoi, setActivePoi] = useState<ActivePoi>(null);
+  const [stageSize, setStageSize] = useState<StageSize | null>(null);
+
+  // ✅ pentru “full viewport fără zona albă” calculăm header height
+  const [headerH, setHeaderH] = useState<number>(0);
 
   const reduceMotion = usePrefersReducedMotion();
 
@@ -125,6 +143,52 @@ export default function BlueprintMap() {
     offsetRef.current = offset;
   }, [offset]);
 
+  // stage size (minimap + viewport rect)
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setStageSize({ width: rect.width, height: rect.height });
+    };
+
+    update();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(() => update());
+      ro.observe(el);
+      return () => ro.disconnect();
+    }
+
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  // ✅ header height (pentru calc(100svh - header))
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const headerEl = document.querySelector("header");
+    if (!headerEl) {
+      setHeaderH(0);
+      return;
+    }
+
+    const update = () => setHeaderH(Math.round(headerEl.getBoundingClientRect().height));
+
+    update();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(() => update());
+      ro.observe(headerEl);
+      return () => ro.disconnect();
+    }
+
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   const cancelCameraAnim = useCallback(() => {
     const a = cameraAnimRef.current;
     if (!a || !a.active) return;
@@ -134,10 +198,6 @@ export default function BlueprintMap() {
 
   const animateCamera = useCallback(
     (nextOffset: Point, nextZoom: number, durationMs = 650) => {
-      const el = stageRef.current;
-      if (!el) return;
-
-      // Reduced motion => instant
       if (reduceMotion || durationMs <= 10) {
         cancelCameraAnim();
         setZoom(nextZoom);
@@ -287,14 +347,13 @@ export default function BlueprintMap() {
         keys.w || keys.a || keys.s || keys.d || keys.up || keys.left || keys.down || keys.right;
 
       if (any) {
-        // dacă userul mișcă, anulăm easing-ul ca să nu “lupte”
         cancelCameraAnim();
 
         const speed = 520; // px/sec (screen space)
         const z = zoomRef.current || 1;
         const s = speed * dt;
 
-        const dx = (keys.a || keys.left ? s : 0) + (keys.d || keys.right ? -s : 0); // camera move
+        const dx = (keys.a || keys.left ? s : 0) + (keys.d || keys.right ? -s : 0);
         const dy = (keys.w || keys.up ? s : 0) + (keys.s || keys.down ? -s : 0);
 
         setOffset((prev) => ({ x: prev.x + dx * z, y: prev.y + dy * z }));
@@ -320,7 +379,9 @@ export default function BlueprintMap() {
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
 
-      // dacă userul interacționează, anulăm easing-ul ca să nu se “bată”
+      // ✅ NU pornim drag dacă target-ul este interactiv / HUD / modal etc.
+      if (isNoDragTarget(e.target)) return;
+
       cancelCameraAnim();
 
       try {
@@ -358,7 +419,6 @@ export default function BlueprintMap() {
     };
 
     const onWheel = (e: WheelEvent) => {
-      // anulăm easing-ul înainte de zoom manual
       cancelCameraAnim();
 
       e.preventDefault();
@@ -371,11 +431,9 @@ export default function BlueprintMap() {
 
       const prevOffset = offsetRef.current;
 
-      // world point under cursor
       const wx = (pointer.x - prevOffset.x) / prevZoom;
       const wy = (pointer.y - prevOffset.y) / prevZoom;
 
-      // new offset so world point stays under cursor
       const nextOffset = {
         x: pointer.x - wx * nextZoom,
         y: pointer.y - wy * nextZoom,
@@ -458,42 +516,82 @@ export default function BlueprintMap() {
     );
   };
 
+  // ✅ District hubs (clădiri) — ca să nu “teleportezi în gol”
+  const renderDistrictHub = (d: BlueprintDistrict) => {
+    const vars: CssVars = {
+      "--hub-x": `${d.x}px`,
+      "--hub-y": `${d.y}px`,
+    };
+
+    return (
+      <div key={`hub-${d.id}`} className={sp.districtHub} style={vars}>
+        <SmartLink
+          className={sp.districtHubLink}
+          href={d.pageHref}
+          aria-label={`Deschide ${d.label}`}
+        >
+          <span className={sp.districtHubRoof} aria-hidden="true" />
+          <span className={sp.districtHubBody} aria-hidden="true" />
+
+          <span className={sp.districtHubBadge}>
+            <span className={sp.districtHubDot} aria-hidden="true" />
+            HUB
+          </span>
+
+          <span className={sp.districtHubLabel}>
+            <span className={sp.districtHubTitle}>{d.label}</span>
+            <span className={sp.districtHubHint}>Open district page</span>
+          </span>
+        </SmartLink>
+      </div>
+    );
+  };
+
   const modalTitleId = activePoi ? `poi-title-${activePoi.id}` : undefined;
   const modalDescId = activePoi ? `poi-desc-${activePoi.id}` : undefined;
 
+  const rootVars: CssVars = {
+    "--bp-header-h": `${headerH}px`,
+  };
+
   return (
-    <div className={sp.root}>
+    <div className={sp.root} style={rootVars}>
       <div
         ref={stageRef}
         className={`${sp.stage} ${isDragging ? sp.stageGrabbing : ""}`}
         role="region"
         aria-label="Blueprint map"
       >
-        <div className={sp.hint}>
+        <div className={sp.hint} data-no-drag="true">
           <p className={sp.hintTitle}>Blueprint Map (MVP)</p>
-          <p className={sp.hintText}>Drag: mouse/touch • Zoom: scroll • Mișcare: WASD / săgeți</p>
+          <p className={sp.hintText}>Drag: mouse/touch • Zoom: scroll • Teleport: district</p>
         </div>
 
+        {/* Mini-map în colțul dreapta-sus */}
+        <BlueprintMiniMap
+          pois={BLUEPRINT_POIS}
+          districts={BLUEPRINT_DISTRICTS}
+          stageSize={stageSize}
+          offset={offset}
+          zoom={zoom}
+        />
+
         <div className={sp.layer} style={{ transform: layerTransform }}>
+          {/* ✅ hub-uri district (vizibile după teleport) */}
+          {BLUEPRINT_DISTRICTS.map(renderDistrictHub)}
+
+          {/* POI-uri */}
           {BLUEPRINT_POIS.map(renderPoi)}
         </div>
 
-        <div className={sp.hud}>
+        {/* ✅ HUD: stacked */}
+        <div className={sp.hud} data-no-drag="true">
           <div className={sp.hudInner}>
-            <div className={sp.hudLeft}>
-              <div className={sp.hudKbd}>
-                <span className={sp.kbd}>W</span>
-                <span className={sp.kbd}>A</span>
-                <span className={sp.kbd}>S</span>
-                <span className={sp.kbd}>D</span>
-              </div>
+            <button type="button" className={sp.hudBtn} onClick={onResetView}>
+              Reset view
+            </button>
 
-              <button type="button" className={sp.hudBtn} onClick={onResetView}>
-                Reset view
-              </button>
-            </div>
-
-            <div className={sp.hudRight}>
+            <div className={sp.hudDistricts}>
               {BLUEPRINT_DISTRICTS.map((d) => (
                 <div key={d.id} className={hudSp.districtGroup}>
                   <button
@@ -517,6 +615,7 @@ export default function BlueprintMap() {
         {activePoi ? (
           <div
             className={sp.modalOverlay}
+            data-no-drag="true"
             role="dialog"
             aria-modal="true"
             aria-labelledby={modalTitleId}

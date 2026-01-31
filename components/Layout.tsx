@@ -4,6 +4,7 @@
 // Imports
 // ==============================
 import Head from "next/head";
+import { useRouter } from "next/router";
 import type { ReactNode } from "react";
 
 import { SITE, withBase } from "../lib/config";
@@ -24,7 +25,11 @@ type LayoutProps = {
 // Component
 // ==============================
 function Layout({ children }: LayoutProps) {
+  const router = useRouter();
   const siteName = SITE.name || "Site";
+
+  // ✅ Index: fără footer (harta trebuie să rămână “curată”)
+  const hideFooter = router.pathname === "/";
 
   return (
     <div>
@@ -58,7 +63,7 @@ function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
-      <Footer />
+      {!hideFooter ? <Footer /> : null}
     </div>
   );
 }

@@ -27,7 +27,11 @@ const poiKindVars: Record<Kind, { accent: string; fill: string }> = {
 export const root = style({
   position: "relative",
   width: "100%",
-  height: "clamp(560px, 78vh, 860px)",
+
+  // ✅ eliminăm “zona albă” — mapa ocupă tot viewport-ul rămas (sub header)
+  height: "calc(100svh - var(--bp-header-h, 0px))",
+  minHeight: 560,
+
   borderTop: `1px solid ${vars.color.border}`,
   borderBottom: `1px solid ${vars.color.border}`,
   overflow: "hidden",
@@ -89,24 +93,23 @@ export const hintText = style({
   opacity: 0.78,
 });
 
+/** HUD (dock) — stânga viewport-ului */
 export const hud = style({
   position: "absolute",
-  left: 0,
-  right: 0,
-  bottom: 0,
+  left: vars.space.md,
+  bottom: vars.space.md,
   zIndex: vars.z.overlay,
-  borderTop: `1px solid ${vars.color.border}`,
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: vars.radius.lg,
   background: vars.color.surface,
+  boxShadow: vars.shadow.sm,
+  width: "min(520px, calc(100vw - 32px))",
 });
 
 export const hudInner = style({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
+  display: "grid",
   gap: vars.space.md,
   padding: `${vars.space.sm} ${vars.space.md}`,
-  maxWidth: vars.layout.max.lg,
-  margin: "0 auto",
 
   "@media": {
     [mq.md]: {
@@ -115,63 +118,15 @@ export const hudInner = style({
   },
 });
 
-export const hudLeft = style({
-  display: "flex",
-  alignItems: "center",
+export const hudDistricts = style({
+  display: "grid",
+  gridAutoFlow: "row",
   gap: vars.space.sm,
-  minWidth: 0,
 });
 
-export const hudKbd = style({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  fontSize: vars.typography.size.sm,
-  opacity: 0.82,
-  whiteSpace: "nowrap",
-});
-
-export const kbd = style({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "2px 8px",
-  borderRadius: vars.radius.sm,
-  border: `1px solid ${vars.color.border}`,
-  background: "rgba(127,127,127,0.08)",
-  fontWeight: 800,
-  letterSpacing: "0.02em",
-});
-
-export const hudRight = style({
-  display: "flex",
-  alignItems: "center",
-  gap: vars.space.sm,
-  flexWrap: "wrap",
-  justifyContent: "flex-end",
-});
-
-export const hudLink = style({
-  textDecoration: "none",
-  border: `1px solid ${vars.color.border}`,
-  borderRadius: 999,
-  padding: "8px 12px",
-  fontWeight: 800,
-  lineHeight: 1,
-  transition: `transform ${vars.motion.fast} ${vars.motion.easing.standard}, background-color ${vars.motion.fast} ${vars.motion.easing.standard}`,
-  selectors: {
-    "&:hover": {
-      transform: "translateY(-1px)",
-      backgroundColor: "rgba(127,127,127,0.10)",
-    },
-    "&:active": {
-      transform: "translateY(0px)",
-      backgroundColor: "rgba(127,127,127,0.14)",
-    },
-  },
-});
-
+/** Reset btn */
 export const hudBtn = style({
+  justifySelf: "start",
   border: `1px solid ${vars.color.border}`,
   borderRadius: 999,
   padding: "8px 12px",
@@ -195,6 +150,113 @@ export const hudBtn = style({
       outlineOffset: 2,
     },
   },
+});
+
+// ---------- District Hub (building) ----------
+export const districtHub = style({
+  position: "absolute",
+  transform: "translate3d(var(--hub-x), var(--hub-y), 0)",
+  width: 220,
+  height: 110,
+  display: "grid",
+  placeItems: "end center",
+});
+
+export const districtHubLink = style({
+  width: "100%",
+  height: "100%",
+  display: "block",
+  position: "relative",
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: vars.radius.xl,
+  background: "rgba(127,127,127,0.06)",
+  boxShadow: vars.shadow.sm,
+  textDecoration: "none",
+  color: "inherit",
+  overflow: "hidden",
+  transition: `transform ${vars.motion.fast} ${vars.motion.easing.standard}, box-shadow ${vars.motion.fast} ${vars.motion.easing.standard}`,
+
+  selectors: {
+    "&:hover": {
+      transform: "translateY(-1px)",
+      boxShadow: vars.shadow.md,
+    },
+    "&:active": {
+      transform: "translateY(0px)",
+    },
+    "&:focus-visible": {
+      outline: `2px solid ${vars.color.focus}`,
+      outlineOffset: 2,
+    },
+  },
+});
+
+export const districtHubRoof = style({
+  position: "absolute",
+  left: 24,
+  right: 24,
+  top: 18,
+  height: 20,
+  borderRadius: vars.radius.md,
+  border: `1px solid ${vars.color.border}`,
+  background: "rgba(127,127,127,0.10)",
+});
+
+export const districtHubBody = style({
+  position: "absolute",
+  left: 16,
+  right: 16,
+  bottom: 14,
+  height: 56,
+  borderRadius: vars.radius.lg,
+  border: `1px solid ${vars.color.border}`,
+  background: vars.color.cardBg,
+});
+
+export const districtHubBadge = style({
+  position: "absolute",
+  left: 12,
+  top: 10,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "6px 10px",
+  borderRadius: 999,
+  border: `1px solid ${vars.color.border}`,
+  background: "rgba(127,127,127,0.10)",
+  fontSize: vars.typography.size.sm,
+  fontWeight: 900,
+  letterSpacing: "0.02em",
+});
+
+export const districtHubDot = style({
+  width: 10,
+  height: 10,
+  borderRadius: 999,
+  background: vars.color.focus,
+});
+
+export const districtHubLabel = style({
+  position: "absolute",
+  left: 12,
+  right: 12,
+  bottom: 14,
+  display: "grid",
+  gap: 2,
+});
+
+export const districtHubTitle = style({
+  margin: 0,
+  fontSize: vars.typography.size.sm,
+  fontWeight: 900,
+  lineHeight: vars.typography.leading.tight,
+});
+
+export const districtHubHint = style({
+  margin: 0,
+  fontSize: vars.typography.size.xs,
+  opacity: 0.78,
+  lineHeight: vars.typography.leading.normal,
 });
 
 // ---------- POI ----------
